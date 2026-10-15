@@ -220,6 +220,38 @@ export function buatKotak(px, py, pz) {
     return { vertex: vertex, faces: faces };
 }
 
+// pipa yang ngikutin kurva 2D di bidang xy (misal hasil generateBSpline)
+// titik = [x, y, x, y, ...], r = jari2 pipanya
+// ujungnya kebuka, tutup sendiri pake bola kalau perlu
+export function buatPipaKurva(titik, r, sector) {
+    var vertex = [];
+    var m = titik.length / 2;
+
+    for (var i = 0; i < m; i++) {
+        // arah kurva di titik ini, dari titik sebelum ke titik sesudah
+        var a = Math.max(i - 1, 0), b = Math.min(i + 1, m - 1);
+        var tx = titik[b * 2] - titik[a * 2];
+        var ty = titik[b * 2 + 1] - titik[a * 2 + 1];
+        var panjang = Math.sqrt(tx * tx + ty * ty) || 1;
+        tx /= panjang;
+        ty /= panjang;
+
+        // (nx, ny) tegak lurus sama arah kurva, lingkarannya dibikin pake (nx, ny) sama sumbu z
+        var nx = -ty, ny = tx;
+
+        for (var j = 0; j <= sector; j++) {
+            var u = -Math.PI + 2 * Math.PI * j / sector;
+            vertex.push(
+                titik[i * 2] + r * Math.cos(u) * nx,
+                titik[i * 2 + 1] + r * Math.cos(u) * ny,
+                r * Math.sin(u)
+            );
+        }
+    }
+
+    return { vertex: vertex, faces: facesGrid(m - 1, sector) };
+}
+
 // b-spline dari materi kelas, controlPoint = [x, y, x, y, ...]
 // return titik2 kurvanya [x, y, x, y, ...] sebanyak m titik
 export function generateBSpline(controlPoint, m, degree) {
