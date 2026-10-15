@@ -1,11 +1,11 @@
 import { Objek } from "../shared/objek.js";
 import { LIBS } from "../shared/libs.js";
 import {
-    buatEllipsoid, buatKapsul, buatTabung, buatHiperboloid2,
+    buatEllipsoid, buatKapsul, buatTabung, buatHiperboloid2, buatParaboloid,
     buatTorus, buatLingkaran, buatKotak, generateBSpline
 } from "../shared/bentuk.js";
 
-var badan, pinggulKiri, pinggulKanan;
+var badan, pinggulKiri, pinggulKanan, bahuKiri, bahuKanan;
 
 // sirip dari 2 kurva b-spline (pinggir depan & belakang) yang ketemu di ujung
 // titik kontrolnya [z, y, z, y, ...] jadi dilihat dari samping
@@ -99,6 +99,32 @@ function buatKaki(GL, warnaCincin) {
     return kaki;
 }
 
+// 1 lengan lengkap: lengan putih + sarung tinju
+// titik (0,0,0) nya di bahu
+function buatLengan(GL, warnaTangan) {
+    // lengan putih, tabungnya dari y = 0 ke atas jadi diturunin 0.3 biar ngegantung
+    var t = buatTabung(0.045, 0.3, 16);
+    var lengan = new Objek(GL, t.vertex, t.faces, [1, 1, 1]);
+    LIBS.set_position(lengan.MOVEMATRIX, 0, -0.3, 0);
+
+    // titik tengah tangan, di ujung bawah lengan
+    var tangan = new Objek(GL);
+    LIBS.set_position(tangan.MOVEMATRIX, 0, -0.08, 0);
+    lengan.addChild(tangan);
+
+    // kepalan tangan, bola
+    var b = buatEllipsoid(0.13, 0.13, 0.13, 16, 24);
+    var kepalan = new Objek(GL, b.vertex, b.faces, warnaTangan);
+    tangan.addChild(kepalan);
+
+    // ujung sarung tinju, paraboloid yang kebuka ke atas ngebungkus pergelangan
+    var p = buatParaboloid(0.09, 0.17, 0.09, 10, 24);
+    var ujung = new Objek(GL, p.vertex, p.faces, warnaTangan);
+    tangan.addChild(ujung);
+
+    return lengan;
+}
+
 export function buatMagnetBomber(GL) {
     var warna = [0.2, 0.5, 1.0];
 
@@ -146,6 +172,21 @@ export function buatMagnetBomber(GL) {
     // cincin kaki kiri biru, kanan merah
     pinggulKiri.addChild(buatKaki(GL, [0.2, 0.5, 1.0]));
     pinggulKanan.addChild(buatKaki(GL, [0.9, 0.15, 0.15]));
+
+    // bahu = pivot buat lengan, di samping atas badan
+    // dirotate dikit biar lengannya agak ngebuka keluar
+    bahuKiri = new Objek(GL);
+    bahuKanan = new Objek(GL);
+    LIBS.rotateZ(bahuKiri.MOVEMATRIX, -0.35);
+    LIBS.rotateZ(bahuKanan.MOVEMATRIX, 0.35);
+    LIBS.set_position(bahuKiri.MOVEMATRIX, -0.24, 0.15, 0);
+    LIBS.set_position(bahuKanan.MOVEMATRIX, 0.24, 0.15, 0);
+    badan.addChild(bahuKiri);
+    badan.addChild(bahuKanan);
+
+    // tangan kiri sarung tinju merah, kanan biru
+    bahuKiri.addChild(buatLengan(GL, [0.9, 0.15, 0.15]));
+    bahuKanan.addChild(buatLengan(GL, [0.15, 0.3, 0.85]));
 
     return root;
 }
