@@ -264,3 +264,54 @@ export function generateBSpline(controlPoint, m, degree) {
     }
     return curves;
 }
+
+//punya Kevin
+// ovoid (telur ayam), rx & rz = jari-jari horizontal, ry = tinggi
+// k = kelancipan (0.2 - 0.35 cocok untuk bentuk telur ayam yang pas)
+export function buatOvoid(rx, ry, rz, k = 0.28, stack, sector) {
+    var vertex = [];
+
+    for (var i = 0; i <= stack; i++) {
+        var v = -Math.PI / 2 + Math.PI * i / stack;
+        var sinV = Math.sin(v);
+        var cosV = Math.cos(v);
+
+        // Deformasi ovoid: memperkecil radius saat mendekati kutub atas (y positif)
+        var scale = 1.0 - k * sinV;
+
+        for (var j = 0; j <= sector; j++) {
+            var u = -Math.PI + 2 * Math.PI * j / sector;
+            vertex.push(
+                rx * scale * cosV * Math.cos(u),
+                ry * sinV,
+                rz * scale * cosV * Math.sin(u)
+            );
+        }
+    }
+
+    return { vertex: vertex, faces: facesGrid(stack, sector) };
+}
+
+// frustum (kerucut terpancung), rBottom = jari-jari bawah, rTop = jari-jari atas, tinggi = panjang y
+export function buatFrustum(rBottom, rTop, tinggi, stack, sector) {
+    var vertex = [];
+
+    for (var i = 0; i <= stack; i++) {
+        var t = i / stack; // 0 (bawah) sampai 1 (atas)
+        var y = t * tinggi; // bergerak naik dari y = 0 ke y = tinggi
+        
+        // Interpolasi linier radius dari bawah ke atas
+        var r = rBottom + t * (rTop - rBottom);
+
+        for (var j = 0; j <= sector; j++) {
+            var u = -Math.PI + 2 * Math.PI * j / sector;
+            vertex.push(
+                r * Math.cos(u),
+                y,
+                r * Math.sin(u)
+            );
+        }
+    }
+
+    return { vertex: vertex, faces: facesGrid(stack, sector) };
+}
