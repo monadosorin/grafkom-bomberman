@@ -292,6 +292,7 @@ export function buatOvoid(rx, ry, rz, k = 0.28, stack, sector) {
     return { vertex: vertex, faces: facesGrid(stack, sector) };
 }
 
+//punya Kevin
 // frustum (kerucut terpancung), rBottom = jari-jari bawah, rTop = jari-jari atas, tinggi = panjang y
 export function buatFrustum(rBottom, rTop, tinggi, stack, sector) {
     var vertex = [];
