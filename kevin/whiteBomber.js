@@ -60,7 +60,7 @@ export function buatWhiteBomber(GL) {
     torsoBiru.addChild(kepala);
 
     //helm
-    var h = buatKapsul(0.5, 0.35, 0.35, 0.2, 20, 20);
+    var h = buatKapsul(0.454, 0.28, 0.35, 0.2, 20, 20);
     var helm = new Objek(GL, h.vertex, h.faces, warnaPutih);
     LIBS.set_position(helm.MOVEMATRIX, 0, 0, -0.06);
     kepala.addChild(helm);
@@ -91,16 +91,16 @@ export function buatWhiteBomber(GL) {
     kepala.addChild(mataKanan);
 
     //helmTorus dan covernya
-    var ht = buatTorus(0.42, 0.33, 0.1, 0.2, 20, 20);
+    var ht = buatTorus(0.43, 0.34, 0.07, 0.3, 20, 20);
     var helmTorus = new Objek(GL, ht.vertex, ht.faces, warnaPutih);
-    LIBS.set_position(helmTorus.MOVEMATRIX, 0, 0, 0.1);
+    LIBS.set_position(helmTorus.MOVEMATRIX, 0, 0, 0.05);
     LIBS.rotateX(helmTorus.MOVEMATRIX, Math.PI / 2);
     kepala.addChild(helmTorus);
 
     //frustum ke bola dari helm
     var tk = buatFrustum(0.03, 0.04, 0.3, 20, 20);
     var frustumKepala = new Objek(GL, tk.vertex, tk.faces, warnaPutih);
-    LIBS.set_position(frustumKepala.MOVEMATRIX, 0, 0.35, -0.3);
+    LIBS.set_position(frustumKepala.MOVEMATRIX, 0, 0.3, -0.3);
     LIBS.rotateX(frustumKepala.MOVEMATRIX, -Math.PI / 4);
     kepala.addChild(frustumKepala);
 
