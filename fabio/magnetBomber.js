@@ -2,7 +2,7 @@ import { Objek } from "../shared/objek.js";
 import { LIBS } from "../shared/libs.js";
 import {
     buatEllipsoid, buatKapsul, buatTabung, buatHiperboloid1, buatHiperboloid2, buatParaboloid,
-    buatTorus, buatLingkaran, buatKotak, generateBSpline, buatPipaKurva
+    buatTorus, buatLingkaran, buatKotak, generateBSpline, buatMeshKurva
 } from "../shared/bentuk.js";
 
 // disimpen di luar biar bisa diubah di animasi
@@ -213,7 +213,7 @@ function buatKepala(GL) {
         0.11, 0.05,
         0.11, 0.2
     ], 30, 2);
-    var pu = buatPipaKurva(kurvaU, 0.035, 16);
+    var pu = buatMeshKurva(kurvaU, 0.035, 0.035, null, 16);
     var badanMagnet = new Objek(GL, pu.vertex, pu.faces, emas);
     magnet.addChild(badanMagnet);
 
