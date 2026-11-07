@@ -1,13 +1,13 @@
 import { Objek } from "../shared/objek.js";
 import { LIBS } from "../shared/libs.js";
 import {
-    buatEllipsoid, buatKapsul, buatTabung, buatHiperboloid1, buatHiperboloid2, buatParaboloid,
+    buatEllipsoid, buatKapsul, buatTabung, buatHiperboloid2, buatParaboloid,
     buatTorus, buatLingkaran, buatKotak, generateBSpline
 } from "../shared/bentuk.js";
 
 // disimpen di luar biar bisa diubah di animasi
 var badan, pinggulKiri, pinggulKanan, bahuKiri, bahuKanan;
-var antena, syalMerah, syalPutih, syalBiru;
+var antena, syalMerah, syalBiru;
 
 // pita buat ekor syal, ngikutin kurva b-spline yang diliat dari atas
 // kontrol = [x, z, x, z, ...], lebarnya ke arah y (atas bawah), makin ke ujung makin kecil
@@ -290,15 +290,6 @@ function buatKepala(GL) {
     var badanMagnet = new Objek(GL, pu.vertex, pu.faces, EMAS);
     magnet.addChild(badanMagnet);
 
-    // gelang di deket ujung magnet, hiperboloid 1 sisi (kayak jam pasir) yang ngelilingin kaki U
-    // pinggangnya = setengah penampang balok x akar 2, biar sudut baloknya ga nembus
-    var hp = buatHiperboloid1(0.05, 0.035, 0.032, 0.6, 8, 20);
-    for (var sisi of [-1, 1]) {
-        var gelang = new Objek(GL, hp.vertex, hp.faces, [0.8, 0.5, 0.08]);
-        LIBS.set_position(gelang.MOVEMATRIX, 0.13 * sisi, 0.16, 0);
-        magnet.addChild(gelang);
-    }
-
     return kepala;
 }
 
@@ -345,20 +336,15 @@ export function buatMagnetBomber(GL) {
     LIBS.set_position(kerah.MOVEMATRIX, 0, 0.28, 0);
     badan.addChild(kerah);
 
-    // ekor syal merah, putih, biru di belakang leher, kebawa angin ke samping
+    // ekor syal merah sama biru di belakang leher, kebawa angin ke samping
     // posisinya diatur di animasi biar bisa berkibar
     syalMerah = new Objek(GL);
-    syalPutih = new Objek(GL);
     syalBiru = new Objek(GL);
     badan.addChild(syalMerah);
-    badan.addChild(syalPutih);
     badan.addChild(syalBiru);
 
     var pm = buatPita([0, 0, -0.1, -0.2, 0.05, -0.45, -0.1, -0.7, 0, -0.95], 0.26, 0.06, 0.12, 36);
     syalMerah.addChild(new Objek(GL, pm.vertex, pm.faces, MERAH));
-
-    var pp = buatPita([0, 0, 0.08, -0.2, -0.06, -0.45, 0.08, -0.7, -0.02, -0.9], 0.24, 0.05, 0.2, 36);
-    syalPutih.addChild(new Objek(GL, pp.vertex, pp.faces, PUTIH));
 
     var pb = buatPita([0, 0, -0.08, -0.2, 0.06, -0.42, -0.08, -0.65, 0.02, -0.85], 0.22, 0.05, 0.3, 36);
     syalBiru.addChild(new Objek(GL, pb.vertex, pb.faces, [0.3, 0.45, 0.95]));
@@ -430,7 +416,7 @@ export function animasiMagnetBomber(time) {
     LIBS.set_position(antena.MOVEMATRIX, -0.16, 0.33, -0.12);
 
     // ekor syal berkibar, makin bawah makin ke samping
-    var syal = [[syalMerah, 0.5, 0.27], [syalPutih, 0.72, 0.24], [syalBiru, 0.95, 0.21]];
+    var syal = [[syalMerah, 0.5, 0.27], [syalBiru, 0.9, 0.21]];
     for (var i = 0; i < syal.length; i++) {
         var o = syal[i][0];
         LIBS.set_I4(o.MOVEMATRIX);
