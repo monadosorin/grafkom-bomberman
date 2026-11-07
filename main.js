@@ -19,12 +19,17 @@ mulaiScene(function (GL) {
     tempatFabio.addChild(buatMagnetBomber(GL));
     tempatNick.addChild(buatGolemBomber(GL));
 
+    // bom punya kevin, posisinya diatur sama perintah lempar
+    var tempatBom = new Objek(GL);
+    tempatBom.addChild(buatBomb(GL));
+
     // ===== posisi awal sama gerakan tiap bomber, atur di sini =====
     // koordinat petak (x, y): x = -6 .. 6 (kiri ke kanan), y = -4 .. 4 (depan ke belakang), (0, 0) = tengah
     // pencet G di browser buat liat koordinat tiap petak, yang merah itu pilar (ga bisa diinjek)
     //   jalanKe(x, y, detik) = jalan ke petak (x, y)
     //   diam(detik)          = diem di tempat
     //   hadap(derajat, detik) = muter, 0 = depan, 90 = kanan, 180 = belakang, -90 = kiri
+    //   lempar(bom, x, y, detik) = angkat bom terus lempar ke petak (x, y)
     //   ulang = true         = kalau udah habis ulang dari awal (jadi akhirnya harus balik ke petak awal)
 
     var gerakFabio = new Penggerak(tempatFabio, -2, 0);
@@ -32,7 +37,7 @@ mulaiScene(function (GL) {
     gerakFabio.ulang = true;
 
     var gerakKevin = new Penggerak(tempatKevin, 0, 0);
-    gerakKevin.diam(1).jalanKe(0, -3, 2.5).diam(0.5).jalanKe(0, 0, 2.5).diam(1);
+    gerakKevin.diam(1).jalanKe(0, -3, 2.5).diam(0.3).lempar(tempatBom, 0, 1, 1.4).diam(0.5).jalanKe(0, 0, 2.5).diam(1);
     gerakKevin.ulang = true;
 
     // golem 1.5x lebih gede dari yang lain (parameter terakhir = skala)
@@ -41,16 +46,18 @@ mulaiScene(function (GL) {
     gerakNick.ulang = true;
 
     return {
-        objek: [arena, tempatKevin, tempatFabio, tempatNick],
+        objek: [arena, tempatKevin, tempatFabio, tempatNick, tempatBom],
         animasi: function (time) {
             gerakFabio.update(time);
             gerakKevin.update(time);
             gerakNick.update(time);
 
-            // gerakX.jalan = lagi jalan apa diem, dikasih ke animasi biar bisa ganti gaya
-            animasiWhiteBomber(time, gerakKevin.jalan);
+            // gerakX.jalan = lagi jalan apa diem, gerakX.lagiLempar = lagi ngangkat bom
+            // dikasih ke animasi biar bisa ganti gaya
+            animasiWhiteBomber(time, gerakKevin.jalan, gerakKevin.lagiLempar);
             animasiMagnetBomber(time, gerakFabio.jalan);
             animasiGolemBomber(time);
+            animasiBomb(time);
         },
         // arena udah punya lantai sendiri
         lantai: false,

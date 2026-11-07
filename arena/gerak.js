@@ -8,11 +8,58 @@ import { posisiPetak, petakDiblok } from "./arena.js";
 //   gerak.jalanKe(-2, 3, 2);   // jalan ke petak (-2, 3) selama 2 detik
 //   gerak.diam(1);             // diem 1 detik
 //   gerak.hadap(180, 0.5);     // muter ngadep 180 derajat (belakang) selama 0.5 detik
+//   gerak.lempar(tempatBom, 0, 2, 1.4);  // lempar bom ke petak (0, 2) selama 1.4 detik
 //   gerak.ulang = true;        // kalau perintahnya udah habis, ulang dari awal
 //   terus di animasi: gerak.update(time);
 //   gerak.jalan = true kalau lagi jalan, false kalau lagi diem / muter, bisa dikasih ke animasi bomber
+//   gerak.lagiLempar = true kalau bom nya lagi diangkat (tangan naik), bisa dikasih ke animasi bomber juga
 //
 // arah dalam derajat: 0 = ngadep depan (ke kamera awal), 90 = kanan, 180 = belakang, -90 = kiri
+
+// tinggi bom pas diangkat di atas kepala, sama tinggi puncak lengkungan lemparan
+var TINGGI_ANGKAT = 2.2;
+var TINGGI_LEMPAR = 3.5;
+
+// bom disembunyiin dengan skala 0 (ga keliatan sama sekali)
+function sembunyiin(bom) {
+    LIBS.set_I4(bom.MOVEMATRIX);
+    LIBS.scale(bom.MOVEMATRIX, 0, 0, 0);
+}
+
+// posisi bom selama lemparan, k = 0 sampai 1
+// 0 - 0.25   : diangkat dari tangan ke atas kepala
+// 0.25 - 0.85: terbang melengkung (parabola) ke petak tujuan
+// 0.85 - 1   : mantul dikit di petak tujuan
+function gerakinBom(p, k, darix, dariy, skala) {
+    var dari = posisiPetak(darix, dariy);
+    var ke = posisiPetak(p.x, p.y);
+    var x, y, z;
+
+    if (k < 0.25) {
+        // naik dari tinggi tangan (setengah) ke atas kepala
+        var a = k / 0.25;
+        x = dari.x;
+        z = dari.z;
+        y = (TINGGI_ANGKAT * 0.5 + TINGGI_ANGKAT * 0.5 * a) * skala;
+    } else if (k < 0.85) {
+        // a = 0 sampai 1 sepanjang terbangnya
+        // tinggi = garis lurus dari atas kepala ke lantai + parabola 4a(1-a) biar melengkung
+        var a = (k - 0.25) / 0.6;
+        x = dari.x + (ke.x - dari.x) * a;
+        z = dari.z + (ke.z - dari.z) * a;
+        y = TINGGI_ANGKAT * skala * (1 - a) + TINGGI_LEMPAR * 4 * a * (1 - a);
+    } else {
+        // mantul kecil: setengah gelombang sin
+        var a = (k - 0.85) / 0.15;
+        x = ke.x;
+        z = ke.z;
+        y = Math.sin(a * Math.PI) * 0.4;
+    }
+
+    LIBS.set_I4(p.bom.MOVEMATRIX);
+    LIBS.set_position(p.bom.MOVEMATRIX, x, y, z);
+}
+
 export class Penggerak {
     constructor(tempat, x, y, skala) {
         this.tempat = tempat;
@@ -26,6 +73,7 @@ export class Penggerak {
         this.awal = null;    // posisi & arah pas perintah yang sekarang mulai
         this.ulang = false;
         this.jalan = false;  // true kalau lagi ngerjain jalanKe, bisa dikasih ke animasi bomber
+        this.lagiLempar = false; // true kalau bom lagi diangkat sebelum dilempar
         this.pasang();
     }
 
@@ -45,12 +93,22 @@ export class Penggerak {
         return this;
     }
 
+    // lempar bom ke petak (x, y): diangkat ke atas kepala, terbang melengkung, mantul dikit, terus diem di situ
+    // bom = Objek tempat bom nya (kayak tempat bomber), sebelum dilempar bom nya disembunyiin
+    lempar(bom, x, y, detik) {
+        if (petakDiblok(x, y)) console.warn("petak (" + x + ", " + y + ") itu tembok / pilar");
+        this.daftar.push({ jenis: "lempar", bom: bom, x: x, y: y, detik: detik || 1.4 });
+        sembunyiin(bom);
+        return this;
+    }
+
     update(time) {
         var t = time / 1000;
 
         if (this.urutan >= this.daftar.length) {
             if (!this.ulang || this.daftar.length == 0) {
                 this.jalan = false;
+                this.lagiLempar = false;
                 return;
             }
             this.urutan = 0;
@@ -64,8 +122,8 @@ export class Penggerak {
             this.mulai = t;
             this.awal = { x: this.x, y: this.y, arah: this.arah };
 
-            // kalau jalan, langsung ngadep ke arah jalannya
-            if (p.jenis == "jalan") {
+            // kalau jalan / lempar, langsung ngadep ke arah tujuannya
+            if (p.jenis == "jalan" || p.jenis == "lempar") {
                 var dx = p.x - this.x, dy = p.y - this.y;
                 if (dx != 0 || dy != 0) this.arah = Math.atan2(dx, -dy) * 180 / Math.PI;
             }
@@ -79,7 +137,13 @@ export class Penggerak {
             this.y = this.awal.y + (p.y - this.awal.y) * k;
         } else if (p.jenis == "hadap") {
             this.arah = this.awal.arah + (p.arah - this.awal.arah) * k;
+        } else if (p.jenis == "lempar") {
+            // tangan naik selama bom masih dipegang (sampe 30% lemparan)
+            this.lagiLempar = k < 0.3;
+            gerakinBom(p, k, this.x, this.y, this.skala);
         }
+
+        if (p.jenis != "lempar") this.lagiLempar = false;
 
         if (k >= 1) {
             this.urutan++;
