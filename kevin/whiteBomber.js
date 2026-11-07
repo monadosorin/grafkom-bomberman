@@ -191,15 +191,6 @@ export function animasiWhiteBomber(time) {
 
     var t = time / 1000;
 
-    // 1. Jalur memutar mengitari lingkaran jari-jari 1.5
-    var radius = 1.5;
-    var speed = 0.6;
-    var sudut = t * speed;
-
-    LIBS.set_I4(root.MOVEMATRIX);
-    LIBS.set_position(root.MOVEMATRIX, Math.sin(sudut) * radius, 0.8, Math.cos(sudut) * radius);
-    LIBS.rotateY(root.MOVEMATRIX, sudut + Math.PI / 2);
-
     // 2. Ayunan kaki bolak-balik
     var stepFreq = t * 2 * Math.PI * 0.9;
     var ayunKaki = Math.sin(stepFreq) * 0.45;
