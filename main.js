@@ -32,7 +32,7 @@ mulaiScene(function (GL) {
     //   hadap(derajat, detik)  = muter, 0 = bawah (depan), 90 = kanan, 180 = atas (belakang), -90 = kiri
     //   sampai(detik)          = tunggu sampe detik ke-sekian dari awal, biar urutan antar bomber pas
     //   lempar(bom, x, y, detik, sumbu) = lempar bom ke petak (x, y), meledak sumbu detik abis mendarat
-    //                            api nya nyebar 3 petak bentuk plus, bomber yang kena langsung ilang
+    //                            api nya bentuk plus 3 petak, bomber yang sebaris / sekolom dalem 3 petak langsung ilang
     //   ulang = true           = kalau udah habis ulang dari awal (jadi akhirnya harus balik ke petak awal)
     //
     // jalan kira2 1.6 petak per detik, golem 1.3 (soalnya gede)
