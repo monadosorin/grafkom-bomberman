@@ -10,6 +10,7 @@ import { posisiPetak, petakDiblok } from "./arena.js";
 //   gerak.hadap(180, 0.5);     // muter ngadep 180 derajat (belakang) selama 0.5 detik
 //   gerak.ulang = true;        // kalau perintahnya udah habis, ulang dari awal
 //   terus di animasi: gerak.update(time);
+//   gerak.jalan = true kalau lagi jalan, false kalau lagi diem / muter, bisa dikasih ke animasi bomber
 //
 // arah dalam derajat: 0 = ngadep depan (ke kamera awal), 90 = kanan, 180 = belakang, -90 = kiri
 export class Penggerak {
@@ -24,6 +25,7 @@ export class Penggerak {
         this.mulai = null;   // detik perintah yang sekarang mulai
         this.awal = null;    // posisi & arah pas perintah yang sekarang mulai
         this.ulang = false;
+        this.jalan = false;  // true kalau lagi ngerjain jalanKe, bisa dikasih ke animasi bomber
         this.pasang();
     }
 
@@ -47,11 +49,15 @@ export class Penggerak {
         var t = time / 1000;
 
         if (this.urutan >= this.daftar.length) {
-            if (!this.ulang || this.daftar.length == 0) return;
+            if (!this.ulang || this.daftar.length == 0) {
+                this.jalan = false;
+                return;
+            }
             this.urutan = 0;
         }
 
         var p = this.daftar[this.urutan];
+        this.jalan = p.jenis == "jalan";
 
         // perintah baru mulai: catet waktu sama posisi awalnya
         if (this.mulai === null) {
