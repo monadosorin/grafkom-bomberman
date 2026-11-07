@@ -6,8 +6,8 @@ import {
 } from "../shared/bentuk.js";
 
 // disimpen di luar biar bisa diubah di animasi
-var root, badan, pinggulKiri, pinggulKanan, bahuKiri, bahuKanan;
-var antena, syalMerah, syalBiru;
+var badan, pinggulKiri, pinggulKanan, bahuKiri, bahuKanan;
+var antena, syalMerah, syalPutih, syalBiru;
 
 // pita buat ekor syal, ngikutin kurva b-spline yang diliat dari atas
 // kontrol = [x, z, x, z, ...], lebarnya ke arah y (atas bawah), makin ke ujung makin kecil
@@ -70,57 +70,64 @@ function buatSirip(kontrolDepan, kontrolBelakang, tebal, m) {
     return { vertex: vertex, faces: faces };
 }
 
+// warna
+var BIRU = [0.24, 0.58, 0.95];
+var BIRU_TUA = [0.15, 0.32, 0.85];
+var MERAH = [0.9, 0.15, 0.15];
+var PUTIH = [1, 1, 1];
+var HITAM = [0.1, 0.1, 0.1];
+var KUNING = [1.0, 0.85, 0.1];
+var EMAS = [0.96, 0.66, 0.12];
+
 // 1 kaki lengkap: kaki putih + sepatu + batang sepatu + cincin + lidah sepatu
 // titik (0,0,0) nya di pinggul
 function buatKaki(GL, warnaCincin) {
-    var hitam = [0.1, 0.1, 0.1];
-
-    // kaki putih, panjang total = 2 * 0.06 + 0.38 = 0.5
-    var k = buatKapsul(0.06, 0.06, 0.06, 0.38, 10, 16);
-    var kaki = new Objek(GL, k.vertex, k.faces, [1, 1, 1]);
-    LIBS.set_position(kaki.MOVEMATRIX, 0, -0.25, 0);
+    // kaki putih, panjang total = 2 * 0.055 + 0.3 = 0.41
+    var k = buatKapsul(0.055, 0.055, 0.055, 0.3, 10, 16);
+    var kaki = new Objek(GL, k.vertex, k.faces, PUTIH);
+    LIBS.set_position(kaki.MOVEMATRIX, 0, -0.2, 0);
 
     // titik tengah bawah sepatu, pas di lantai, maju ke depan biar ujung sepatunya nongol
     // jadi kakinya ada di z = -0.06 kalau diliat dari sini
     var sepatu = new Objek(GL);
-    LIBS.set_position(sepatu.MOVEMATRIX, 0, -0.4, 0.06);
+    LIBS.set_position(sepatu.MOVEMATRIX, 0, -0.3, 0.06);
     kaki.addChild(sepatu);
 
     // hiperboloid dibalik pake rotateX biar jadi kubah
     // terus dinaikin biar pinggir bawahnya pas di y = 0
-    // tinggi sepatu = 0.32 * (1 / cos(vMax) - 1) = 0.14
+    // tinggi sepatu = 0.37 * (1 / cos(vMax) - 1) = 0.16
     var vMax = 0.8;
-    var h = buatHiperboloid2(0.146, 0.32, 0.233, vMax, 12, 24);
-    var kubah = new Objek(GL, h.vertex, h.faces, hitam);
+    var h = buatHiperboloid2(0.15, 0.37, 0.25, vMax, 12, 24);
+    var kubah = new Objek(GL, h.vertex, h.faces, HITAM);
     LIBS.rotateX(kubah.MOVEMATRIX, Math.PI);
-    LIBS.set_position(kubah.MOVEMATRIX, 0, 0.32 / Math.cos(vMax), 0);
+    LIBS.set_position(kubah.MOVEMATRIX, 0, 0.37 / Math.cos(vMax), 0);
     sepatu.addChild(kubah);
 
     // tutup bawah sepatu, ukurannya sama kayak pinggir bawah kubah
-    var l = buatLingkaran(0.146 * Math.tan(vMax), 0.233 * Math.tan(vMax), 24);
-    var sol = new Objek(GL, l.vertex, l.faces, hitam);
+    var l = buatLingkaran(0.15 * Math.tan(vMax), 0.25 * Math.tan(vMax), 24);
+    var sol = new Objek(GL, l.vertex, l.faces, HITAM);
     LIBS.set_position(sol.MOVEMATRIX, 0, 0.002, 0);
     sepatu.addChild(sol);
 
     // batang sepatu yang bungkus pergelangan
-    var t = buatTabung(0.1, 0.2, 24);
-    var batang = new Objek(GL, t.vertex, t.faces, hitam);
+    var t = buatTabung(0.11, 0.2, 24);
+    var batang = new Objek(GL, t.vertex, t.faces, HITAM);
     LIBS.set_position(batang.MOVEMATRIX, 0, 0.1, -0.06);
     sepatu.addChild(batang);
 
     // cincin warna di bawah batang sepatu
-    var c = buatTorus(0.1, 0.1, 0.03, 0.03, 10, 24);
+    var c = buatTorus(0.11, 0.11, 0.035, 0.035, 10, 24);
     var cincin = new Objek(GL, c.vertex, c.faces, warnaCincin);
-    LIBS.set_position(cincin.MOVEMATRIX, 0, 0.14, -0.06);
+    LIBS.set_position(cincin.MOVEMATRIX, 0, 0.155, -0.06);
     sepatu.addChild(cincin);
 
     // lidah sepatu di depan atas batang, naik ke atas terus agak maju
     var ld = buatSirip(
-        [0.04, 0.2, 0.06, 0.3, 0.08, 0.36, 0.14, 0.42],
-        [-0.02, 0.26, 0.0, 0.32, 0.06, 0.38, 0.14, 0.42],
-        0.12, 20
+        [0.05, 0.2, 0.07, 0.3, 0.09, 0.37, 0.16, 0.43],
+        [-0.01, 0.26, 0.01, 0.33, 0.07, 0.39, 0.16, 0.43],
+        0.14, 20
     );
-    var lidah = new Objek(GL, ld.vertex, ld.faces, hitam);
+    var lidah = new Objek(GL, ld.vertex, ld.faces, HITAM);
     sepatu.addChild(lidah);
 
     return kaki;
@@ -129,23 +136,23 @@ function buatKaki(GL, warnaCincin) {
 // 1 lengan lengkap: lengan putih + sarung tinju
 // titik (0,0,0) nya di bahu
 function buatLengan(GL, warnaTangan) {
-    // lengan putih, tabungnya dari y = 0 ke atas jadi diturunin 0.3 biar ngegantung
-    var t = buatTabung(0.045, 0.3, 16);
-    var lengan = new Objek(GL, t.vertex, t.faces, [1, 1, 1]);
-    LIBS.set_position(lengan.MOVEMATRIX, 0, -0.3, 0);
+    // lengan putih, tabungnya dari y = 0 ke atas jadi diturunin 0.2 biar ngegantung
+    var t = buatTabung(0.045, 0.2, 16);
+    var lengan = new Objek(GL, t.vertex, t.faces, PUTIH);
+    LIBS.set_position(lengan.MOVEMATRIX, 0, -0.2, 0);
 
     // titik tengah tangan, di ujung bawah lengan
     var tangan = new Objek(GL);
-    LIBS.set_position(tangan.MOVEMATRIX, 0, -0.08, 0);
+    LIBS.set_position(tangan.MOVEMATRIX, 0, -0.1, 0);
     lengan.addChild(tangan);
 
-    // kepalan tangan, bola
-    var b = buatEllipsoid(0.13, 0.13, 0.13, 16, 24);
+    // kepalan sarung tinju, bola gede
+    var b = buatEllipsoid(0.17, 0.16, 0.17, 16, 24);
     var kepalan = new Objek(GL, b.vertex, b.faces, warnaTangan);
     tangan.addChild(kepalan);
 
     // ujung sarung tinju, paraboloid yang kebuka ke atas ngebungkus pergelangan
-    var p = buatParaboloid(0.09, 0.17, 0.09, 10, 24);
+    var p = buatParaboloid(0.12, 0.2, 0.12, 10, 24);
     var ujung = new Objek(GL, p.vertex, p.faces, warnaTangan);
     tangan.addChild(ujung);
 
@@ -155,165 +162,175 @@ function buatLengan(GL, warnaTangan) {
 // kepala lengkap: kepala biru + muka item + mata + antena + magnet U
 // titik (0,0,0) nya di tengah kepala
 function buatKepala(GL) {
-    var biruMuda = [0.3, 0.62, 1.0];
-    var emas = [0.95, 0.68, 0.15];
+    var k = buatEllipsoid(0.44, 0.4, 0.42, 24, 36);
+    var kepala = new Objek(GL, k.vertex, k.faces, BIRU);
 
-    var k = buatEllipsoid(0.38, 0.34, 0.36, 24, 32);
-    var kepala = new Objek(GL, k.vertex, k.faces, biruMuda);
-
-    // muka item (visor), paraboloid yang diputer biar ujungnya ngadep depan
+    // muka item (kaca visor), paraboloid yang diputer biar ujungnya ngadep depan
     // rotateX(-90 derajat): tinggi paraboloid (y) jadi ke belakang (-z), rz jadi tinggi muka
-    var p = buatParaboloid(0.3, 0.08, 0.28, 12, 32);
-    var muka = new Objek(GL, p.vertex, p.faces, [0.08, 0.08, 0.1]);
+    // lengkungnya dibikin hampir sama kayak kepala biar nempel
+    var p = buatParaboloid(0.34, 0.125, 0.3, 12, 36);
+    var muka = new Objek(GL, p.vertex, p.faces, [0.06, 0.06, 0.08]);
     LIBS.rotateX(muka.MOVEMATRIX, -Math.PI / 2);
-    LIBS.set_position(muka.MOVEMATRIX, 0, -0.02, 0.375);
+    LIBS.set_position(muka.MOVEMATRIX, 0, -0.02, 0.436);
     kepala.addChild(muka);
 
-    // mata kuning, ellipsoid gepeng, dimiringin biar keliatan galak
-    // rotateY dikit biar ngikutin lengkungan muka
-    var m = buatEllipsoid(0.075, 0.045, 0.02, 12, 16);
-    var mataKiri = new Objek(GL, m.vertex, m.faces, [1.0, 0.85, 0.1]);
-    var mataKanan = new Objek(GL, m.vertex, m.faces, [1.0, 0.85, 0.1]);
-    LIBS.rotateZ(mataKiri.MOVEMATRIX, -0.4);
-    LIBS.rotateY(mataKiri.MOVEMATRIX, -0.25);
-    LIBS.set_position(mataKiri.MOVEMATRIX, -0.1, 0, 0.37);
-    LIBS.rotateZ(mataKanan.MOVEMATRIX, 0.4);
-    LIBS.rotateY(mataKanan.MOVEMATRIX, 0.25);
-    LIBS.set_position(mataKanan.MOVEMATRIX, 0.1, 0, 0.37);
-    kepala.addChild(mataKiri);
-    kepala.addChild(mataKanan);
+    // pinggiran helm biru di sekeliling muka, torus yang diberdiriin pake rotateX
+    // z nya = pinggir paraboloid = 0.436 - 0.125
+    var pg = buatTorus(0.34, 0.3, 0.035, 0.035, 10, 48);
+    var pinggiran = new Objek(GL, pg.vertex, pg.faces, BIRU);
+    LIBS.rotateX(pinggiran.MOVEMATRIX, Math.PI / 2);
+    LIBS.set_position(pinggiran.MOVEMATRIX, 0, -0.02, 0.311);
+    kepala.addChild(pinggiran);
 
-    // antena: pivot di atas kepala, isinya batang (cylinder) + bola
+    // mata kuning gede, ellipsoid gepeng dimiringin
+    // terus ditutup kelopak item di atasnya biar keliatan galak
+    var m = buatEllipsoid(0.11, 0.075, 0.03, 12, 20);
+    var kl = buatEllipsoid(0.13, 0.05, 0.035, 12, 20);
+    for (var sisi of [-1, 1]) {
+        var mata = new Objek(GL, m.vertex, m.faces, KUNING);
+        LIBS.rotateZ(mata.MOVEMATRIX, 0.35 * sisi);
+        LIBS.rotateY(mata.MOVEMATRIX, 0.3 * sisi);
+        LIBS.set_position(mata.MOVEMATRIX, 0.135 * sisi, -0.01, 0.418);
+        kepala.addChild(mata);
+
+        var kelopak = new Objek(GL, kl.vertex, kl.faces, [0.06, 0.06, 0.08]);
+        LIBS.rotateZ(kelopak.MOVEMATRIX, 0.6 * sisi);
+        LIBS.rotateY(kelopak.MOVEMATRIX, 0.3 * sisi);
+        LIBS.set_position(kelopak.MOVEMATRIX, 0.115 * sisi, 0.055, 0.426);
+        kepala.addChild(kelopak);
+    }
+
+    // antena: pivot di atas kepala agak belakang, isinya batang (cylinder) + bola gede
     antena = new Objek(GL);
-    LIBS.rotateZ(antena.MOVEMATRIX, 0.4);
-    LIBS.set_position(antena.MOVEMATRIX, -0.1, 0.3, -0.05);
     kepala.addChild(antena);
 
-    var t = buatTabung(0.022, 0.25, 12);
-    var batangAntena = new Objek(GL, t.vertex, t.faces, [0.85, 0.85, 0.9]);
+    var t = buatTabung(0.025, 0.18, 12);
+    var batangAntena = new Objek(GL, t.vertex, t.faces, PUTIH);
     antena.addChild(batangAntena);
 
-    var bl = buatEllipsoid(0.1, 0.1, 0.1, 16, 24);
-    var bolaAntena = new Objek(GL, bl.vertex, bl.faces, biruMuda);
-    LIBS.set_position(bolaAntena.MOVEMATRIX, 0, 0.32, 0);
+    var bl = buatEllipsoid(0.13, 0.13, 0.13, 16, 24);
+    var bolaAntena = new Objek(GL, bl.vertex, bl.faces, BIRU);
+    LIBS.set_position(bolaAntena.MOVEMATRIX, 0, 0.27, 0);
     antena.addChild(bolaAntena);
 
-    // magnet U di jidat, agak miring ke belakang ngikutin kepala
+    // magnet U di jidat, dimiringin ke belakang ngikutin jidat
+    // bawahnya nutupin atas muka, kakinya nongol lewat atas kepala
     var magnet = new Objek(GL);
-    LIBS.rotateX(magnet.MOVEMATRIX, -0.35);
-    LIBS.set_position(magnet.MOVEMATRIX, 0, 0.35, 0.2);
+    LIBS.rotateX(magnet.MOVEMATRIX, -0.75);
+    LIBS.set_position(magnet.MOVEMATRIX, 0, 0.29, 0.32);
     kepala.addChild(magnet);
 
-    // badan magnetnya: pipa yang ngikutin kurva b-spline bentuk U
+    // badan magnetnya: mesh yang ngikutin kurva b-spline bentuk U
     var kurvaU = generateBSpline([
-        -0.11, 0.2,
-        -0.11, 0.05,
-        -0.11, -0.08,
-        0.11, -0.08,
-        0.11, 0.05,
-        0.11, 0.2
-    ], 30, 2);
-    var pu = buatMeshKurva(kurvaU, 0.035, 0.035, null, 16);
-    var badanMagnet = new Objek(GL, pu.vertex, pu.faces, emas);
+        -0.145, 0.21,
+        -0.145, 0.0,
+        -0.145, -0.2,
+        0.145, -0.2,
+        0.145, 0.0,
+        0.145, 0.21
+    ], 36, 2);
+    var pu = buatMeshKurva(kurvaU, 0.04, 0.04, null, 16);
+    var badanMagnet = new Objek(GL, pu.vertex, pu.faces, EMAS);
     magnet.addChild(badanMagnet);
 
     // ujung magnet, hiperboloid 1 sisi (kayak jam pasir) di tiap ujung U
-    var hp = buatHiperboloid1(0.03, 0.03, 0.03, 0.7, 8, 16);
-    var ujungKiri = new Objek(GL, hp.vertex, hp.faces, [0.85, 0.85, 0.9]);
-    var ujungKanan = new Objek(GL, hp.vertex, hp.faces, [0.85, 0.85, 0.9]);
-    LIBS.set_position(ujungKiri.MOVEMATRIX, -0.11, 0.22, 0);
-    LIBS.set_position(ujungKanan.MOVEMATRIX, 0.11, 0.22, 0);
-    magnet.addChild(ujungKiri);
-    magnet.addChild(ujungKanan);
+    var hp = buatHiperboloid1(0.04, 0.03, 0.04, 0.7, 8, 16);
+    for (var sisi of [-1, 1]) {
+        var ujung = new Objek(GL, hp.vertex, hp.faces, [0.8, 0.5, 0.08]);
+        LIBS.set_position(ujung.MOVEMATRIX, 0.145 * sisi, 0.23, 0);
+        magnet.addChild(ujung);
+    }
 
     return kepala;
 }
 
 export function buatMagnetBomber(GL) {
-    var warna = [0.2, 0.5, 1.0];
-
     // root di tanah (y = 0), kosong
-    root = new Objek(GL);
+    // digedein 1.15 biar tingginya sama kayak bomber lain, kakinya tetep di lantai
+    var root = new Objek(GL);
+    LIBS.scale(root.MOVEMATRIX, 1.15, 1.15, 1.15);
 
-    // badan kapsul, tinggi total = 2 * ry + tinggi = 0.88
-    var b = buatKapsul(0.26, 0.24, 0.22, 0.4, 20, 24);
-    badan = new Objek(GL, b.vertex, b.faces, warna);
-    LIBS.set_position(badan.MOVEMATRIX, 0, 1.0, 0);
+    // badan kapsul pendek, tinggi total = 2 * 0.19 + 0.16 = 0.54
+    // posisi y nya diatur di animasi (naik turun)
+    var b = buatKapsul(0.22, 0.19, 0.2, 0.16, 20, 24);
+    badan = new Objek(GL, b.vertex, b.faces, BIRU);
+    LIBS.set_position(badan.MOVEMATRIX, 0, 0.7, 0);
     root.addChild(badan);
 
     // sabuk item, torus pipih biar kayak pita
-    var s = buatTorus(0.25, 0.21, 0.025, 0.06, 12, 32);
-    var sabuk = new Objek(GL, s.vertex, s.faces, [0.1, 0.1, 0.1]);
-    LIBS.set_position(sabuk.MOVEMATRIX, 0, -0.1, 0);
+    var s = buatTorus(0.215, 0.195, 0.02, 0.05, 12, 32);
+    var sabuk = new Objek(GL, s.vertex, s.faces, HITAM);
+    LIBS.set_position(sabuk.MOVEMATRIX, 0, -0.02, 0);
     badan.addChild(sabuk);
 
     // gesper kuning, di depan sabuk
-    var g = buatKotak(0.15, 0.1, 0.03);
+    var g = buatKotak(0.13, 0.085, 0.03);
     var gesper = new Objek(GL, g.vertex, g.faces, [1.0, 0.75, 0.1]);
-    LIBS.set_position(gesper.MOVEMATRIX, 0, 0, 0.24);
+    LIBS.set_position(gesper.MOVEMATRIX, 0, 0, 0.22);
     sabuk.addChild(gesper);
 
     // kotak item kecil di tengah gesper
-    var gt = buatKotak(0.07, 0.04, 0.01);
-    var gesperTengah = new Objek(GL, gt.vertex, gt.faces, [0.1, 0.1, 0.1]);
+    var gt = buatKotak(0.06, 0.035, 0.01);
+    var gesperTengah = new Objek(GL, gt.vertex, gt.faces, HITAM);
     LIBS.set_position(gesperTengah.MOVEMATRIX, 0, 0, 0.017);
     gesper.addChild(gesperTengah);
 
     // leher, tabung pendek
-    var lh = buatTabung(0.1, 0.14, 16);
-    var leher = new Objek(GL, lh.vertex, lh.faces, [1, 1, 1]);
-    LIBS.set_position(leher.MOVEMATRIX, 0, 0.36, 0);
+    var lh = buatTabung(0.1, 0.1, 16);
+    var leher = new Objek(GL, lh.vertex, lh.faces, PUTIH);
+    LIBS.set_position(leher.MOVEMATRIX, 0, 0.22, 0);
     badan.addChild(leher);
 
     // syal putih yang ngelilingin leher (toroid / kerah leher)
-    var ks = buatTorus(0.14, 0.13, 0.06, 0.05, 12, 32);
-    var kerah = new Objek(GL, ks.vertex, ks.faces, [1, 1, 1]);
-    LIBS.set_position(kerah.MOVEMATRIX, 0, 0.44, 0);
+    var ks = buatTorus(0.15, 0.14, 0.06, 0.05, 12, 32);
+    var kerah = new Objek(GL, ks.vertex, ks.faces, PUTIH);
+    LIBS.set_position(kerah.MOVEMATRIX, 0, 0.28, 0);
     badan.addChild(kerah);
 
-    // ekor syal merah sama biru di belakang leher
+    // ekor syal merah, putih, biru di belakang leher, kebawa angin ke samping
     // posisinya diatur di animasi biar bisa berkibar
     syalMerah = new Objek(GL);
+    syalPutih = new Objek(GL);
     syalBiru = new Objek(GL);
     badan.addChild(syalMerah);
+    badan.addChild(syalPutih);
     badan.addChild(syalBiru);
 
-    var pm = buatPita([0, 0, 0.1, -0.15, 0.02, -0.35, 0.14, -0.55, 0.08, -0.75], 0.14, 0.04, 0.12, 30);
-    syalMerah.addChild(new Objek(GL, pm.vertex, pm.faces, [0.9, 0.2, 0.2]));
+    var pm = buatPita([0, 0, -0.1, -0.2, 0.05, -0.45, -0.1, -0.7, 0, -0.95], 0.26, 0.06, 0.12, 36);
+    syalMerah.addChild(new Objek(GL, pm.vertex, pm.faces, MERAH));
 
-    var pb = buatPita([0, 0, -0.1, -0.15, -0.02, -0.35, -0.14, -0.55, -0.08, -0.7], 0.12, 0.03, 0.2, 30);
-    syalBiru.addChild(new Objek(GL, pb.vertex, pb.faces, [0.25, 0.45, 0.95]));
+    var pp = buatPita([0, 0, 0.08, -0.2, -0.06, -0.45, 0.08, -0.7, -0.02, -0.9], 0.24, 0.05, 0.2, 36);
+    syalPutih.addChild(new Objek(GL, pp.vertex, pp.faces, PUTIH));
+
+    var pb = buatPita([0, 0, -0.08, -0.2, 0.06, -0.42, -0.08, -0.65, 0.02, -0.85], 0.22, 0.05, 0.3, 36);
+    syalBiru.addChild(new Objek(GL, pb.vertex, pb.faces, [0.3, 0.45, 0.95]));
 
     var kepala = buatKepala(GL);
-    LIBS.set_position(kepala.MOVEMATRIX, 0, 0.8, 0);
+    LIBS.set_position(kepala.MOVEMATRIX, 0, 0.63, 0);
     badan.addChild(kepala);
 
     // pinggul = pivot buat kaki, ga ada bentuknya
     pinggulKiri = new Objek(GL);
     pinggulKanan = new Objek(GL);
-    LIBS.set_position(pinggulKiri.MOVEMATRIX, -0.17, -0.35, 0);
-    LIBS.set_position(pinggulKanan.MOVEMATRIX, 0.17, -0.35, 0);
     badan.addChild(pinggulKiri);
     badan.addChild(pinggulKanan);
 
     // cincin kaki kiri biru, kanan merah
-    pinggulKiri.addChild(buatKaki(GL, [0.2, 0.5, 1.0]));
-    pinggulKanan.addChild(buatKaki(GL, [0.9, 0.15, 0.15]));
+    pinggulKiri.addChild(buatKaki(GL, BIRU_TUA));
+    pinggulKanan.addChild(buatKaki(GL, MERAH));
 
     // bahu = pivot buat lengan, di samping atas badan
-    // dirotate dikit biar lengannya agak ngebuka keluar
     bahuKiri = new Objek(GL);
     bahuKanan = new Objek(GL);
-    LIBS.rotateZ(bahuKiri.MOVEMATRIX, -0.35);
-    LIBS.rotateZ(bahuKanan.MOVEMATRIX, 0.35);
-    LIBS.set_position(bahuKiri.MOVEMATRIX, -0.24, 0.15, 0);
-    LIBS.set_position(bahuKanan.MOVEMATRIX, 0.24, 0.15, 0);
     badan.addChild(bahuKiri);
     badan.addChild(bahuKanan);
 
-    // tangan kiri sarung tinju merah, kanan biru
-    bahuKiri.addChild(buatLengan(GL, [0.9, 0.15, 0.15]));
-    bahuKanan.addChild(buatLengan(GL, [0.15, 0.3, 0.85]));
+    // tangan kiri sarung tinju merah, kanan biru tua
+    bahuKiri.addChild(buatLengan(GL, MERAH));
+    bahuKanan.addChild(buatLengan(GL, BIRU_TUA));
+
+    // pose awal, langsung pake animasi di waktu 0
+    animasiMagnetBomber(0);
 
     return root;
 }
@@ -321,52 +338,46 @@ export function buatMagnetBomber(GL) {
 export function animasiMagnetBomber(time) {
     var t = time / 1000;
 
-    // jalan muter lingkaran jari2 1, ngadep ke arah jalannya
-    var sudut = t * 0.5;
-    LIBS.set_I4(root.MOVEMATRIX);
-    LIBS.rotateY(root.MOVEMATRIX, sudut + Math.PI / 2);
-    LIBS.set_position(root.MOVEMATRIX, Math.sin(sudut), 0, Math.cos(sudut));
-
-    // langkah kaki, kaki kiri kanan gantian
-    var langkah = t * 2 * Math.PI * 0.8;
-    var ayun = Math.sin(langkah) * 0.45;
+    // jalan di tempat, kaki kiri kanan gantian
+    var langkah = t * 2 * Math.PI * 0.9;
+    var ayun = Math.sin(langkah) * 0.4;
 
     LIBS.set_I4(pinggulKiri.MOVEMATRIX);
     LIBS.rotateX(pinggulKiri.MOVEMATRIX, ayun);
-    LIBS.set_position(pinggulKiri.MOVEMATRIX, -0.17, -0.35, 0);
+    LIBS.set_position(pinggulKiri.MOVEMATRIX, -0.16, -0.2, 0);
 
     LIBS.set_I4(pinggulKanan.MOVEMATRIX);
     LIBS.rotateX(pinggulKanan.MOVEMATRIX, -ayun);
-    LIBS.set_position(pinggulKanan.MOVEMATRIX, 0.17, -0.35, 0);
+    LIBS.set_position(pinggulKanan.MOVEMATRIX, 0.16, -0.2, 0);
 
     // tangan ayun kebalikan dari kaki di sisi yang sama
+    // rotateZ = lengan agak ngebuka keluar, rotateX = ayunannya
     LIBS.set_I4(bahuKiri.MOVEMATRIX);
-    LIBS.rotateZ(bahuKiri.MOVEMATRIX, -0.35);
-    LIBS.rotateX(bahuKiri.MOVEMATRIX, -ayun * 0.8);
-    LIBS.set_position(bahuKiri.MOVEMATRIX, -0.24, 0.15, 0);
+    LIBS.rotateZ(bahuKiri.MOVEMATRIX, -0.5);
+    LIBS.rotateX(bahuKiri.MOVEMATRIX, -ayun * 0.9);
+    LIBS.set_position(bahuKiri.MOVEMATRIX, -0.2, 0.06, 0);
 
     LIBS.set_I4(bahuKanan.MOVEMATRIX);
-    LIBS.rotateZ(bahuKanan.MOVEMATRIX, 0.35);
-    LIBS.rotateX(bahuKanan.MOVEMATRIX, ayun * 0.8);
-    LIBS.set_position(bahuKanan.MOVEMATRIX, 0.24, 0.15, 0);
+    LIBS.rotateZ(bahuKanan.MOVEMATRIX, 0.5);
+    LIBS.rotateX(bahuKanan.MOVEMATRIX, ayun * 0.9);
+    LIBS.set_position(bahuKanan.MOVEMATRIX, 0.2, 0.06, 0);
 
     // badan naik turun dikit tiap langkah
     LIBS.set_I4(badan.MOVEMATRIX);
-    LIBS.set_position(badan.MOVEMATRIX, 0, 1.0 + Math.abs(Math.sin(langkah)) * 0.04, 0);
+    LIBS.set_position(badan.MOVEMATRIX, 0, 0.7 + Math.abs(Math.sin(langkah)) * 0.035, 0);
 
     // antena goyang
     LIBS.set_I4(antena.MOVEMATRIX);
-    LIBS.rotateZ(antena.MOVEMATRIX, 0.4 + Math.sin(t * 3) * 0.15);
-    LIBS.set_position(antena.MOVEMATRIX, -0.1, 0.3, -0.05);
+    LIBS.rotateZ(antena.MOVEMATRIX, 0.3 + Math.sin(t * 3) * 0.12);
+    LIBS.set_position(antena.MOVEMATRIX, -0.16, 0.33, -0.12);
 
-    // ekor syal berkibar
-    LIBS.set_I4(syalMerah.MOVEMATRIX);
-    LIBS.rotateX(syalMerah.MOVEMATRIX, Math.sin(t * 5) * 0.08);
-    LIBS.rotateY(syalMerah.MOVEMATRIX, 0.35 + Math.sin(t * 4) * 0.15);
-    LIBS.set_position(syalMerah.MOVEMATRIX, 0.05, 0.44, -0.15);
-
-    LIBS.set_I4(syalBiru.MOVEMATRIX);
-    LIBS.rotateX(syalBiru.MOVEMATRIX, Math.sin(t * 5 + 1) * 0.08);
-    LIBS.rotateY(syalBiru.MOVEMATRIX, -0.35 + Math.sin(t * 4 + 1) * 0.15);
-    LIBS.set_position(syalBiru.MOVEMATRIX, -0.05, 0.4, -0.15);
+    // ekor syal berkibar, makin bawah makin ke samping
+    var syal = [[syalMerah, 0.5, 0.27], [syalPutih, 0.72, 0.24], [syalBiru, 0.95, 0.21]];
+    for (var i = 0; i < syal.length; i++) {
+        var o = syal[i][0];
+        LIBS.set_I4(o.MOVEMATRIX);
+        LIBS.rotateX(o.MOVEMATRIX, Math.sin(t * 5 + i) * 0.08);
+        LIBS.rotateY(o.MOVEMATRIX, syal[i][1] + Math.sin(t * 4 + i) * 0.15);
+        LIBS.set_position(o.MOVEMATRIX, 0, syal[i][2], -0.16);
+    }
 }
