@@ -108,7 +108,7 @@ export function buatWhiteBomber(GL) {
     // Bola antena
     var bk = buatEllipsoid(0.2, 0.2, 0.2, 20, 20);
     var bolaKepala = new Objek(GL, bk.vertex, bk.faces, warnaMerah);
-    LIBS.set_position(bolaKepala.MOVEMATRIX, 0, 0.5, -0.5);
+    LIBS.set_position(bolaKepala.MOVEMATRIX, 0, 0.3, -0.3);
     antena.addChild(bolaKepala);
 
     //-------------------------------------TANGAN----------------------------------------------
@@ -121,7 +121,7 @@ export function buatWhiteBomber(GL) {
     badan.addChild(bahuKiri);
 
     var tanganKiri = new Objek(GL, tanganGeom.vertex, tanganGeom.faces, warnaPutih);
-    LIBS.rotateZ(tanganKiri.MOVEMATRIX, 0.3); // Mengarah ke bawah-luar
+    LIBS.rotateZ(tanganKiri.MOVEMATRIX, 0.5); // Mengarah ke bawah-luar
     LIBS.rotateX(tanganKiri.MOVEMATRIX, Math.PI);
     bahuKiri.addChild(tanganKiri);
 
@@ -135,7 +135,7 @@ export function buatWhiteBomber(GL) {
     badan.addChild(bahuKanan);
 
     var tanganKanan = new Objek(GL, tanganGeom.vertex, tanganGeom.faces, warnaPutih);
-    LIBS.rotateZ(tanganKanan.MOVEMATRIX, -0.3);
+    LIBS.rotateZ(tanganKanan.MOVEMATRIX, -0.5);
     LIBS.rotateX(tanganKanan.MOVEMATRIX, Math.PI);
     bahuKanan.addChild(tanganKanan);
 
@@ -216,11 +216,11 @@ export function animasiWhiteBomber(time) {
     var ayunLengan = ayunKaki * 0.8;
 
     LIBS.set_I4(bahuKiri.MOVEMATRIX);
-    LIBS.set_position(bahuKiri.MOVEMATRIX, -0.28, 0.22, 0);
+    LIBS.set_position(bahuKiri.MOVEMATRIX, -0.18, 0.22, 0);
     LIBS.rotateX(bahuKiri.MOVEMATRIX, -ayunLengan);
 
     LIBS.set_I4(bahuKanan.MOVEMATRIX);
-    LIBS.set_position(bahuKanan.MOVEMATRIX, 0.28, 0.22, 0);
+    LIBS.set_position(bahuKanan.MOVEMATRIX, 0.18, 0.22, 0);
     LIBS.rotateX(bahuKanan.MOVEMATRIX, ayunLengan);
 
     // 4. Bobbing badan (naik-turun saat melangkah)
