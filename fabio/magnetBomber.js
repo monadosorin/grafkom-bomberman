@@ -373,19 +373,38 @@ export function buatMagnetBomber(GL) {
     bahuKiri.addChild(buatLengan(GL, MERAH));
     bahuKanan.addChild(buatLengan(GL, BIRU_TUA));
 
-    // pose awal, langsung pake animasi di waktu 0
-    animasiMagnetBomber(0);
+    // pose awal (diem), langsung pake animasi di waktu 0
+    animasiMagnetBomber(0, false);
 
     return root;
 }
 
-export function animasiMagnetBomber(time) {
+// 0 = diem, 1 = jalan penuh. berubahnya pelan2 biar pindah dari jalan ke diem ga patah
+var faktorJalan = 0;
+var waktuSebelum = 0;
+
+// sedangJalan = true kalau lagi jalan, false kalau lagi diem (dikasih dari penggerak di main.js)
+// kalau ga dikasih (misal di preview.html), gantian sendiri: jalan 3 detik, diem 2 detik
+export function animasiMagnetBomber(time, sedangJalan) {
     var t = time / 1000;
+    var dt = Math.min(Math.max(t - waktuSebelum, 0), 0.1);
+    waktuSebelum = t;
 
-    // jalan di tempat, kaki kiri kanan gantian
+    if (sedangJalan === undefined) sedangJalan = (t % 5) < 3;
+
+    // faktorJalan dideketin ke 1 (jalan) atau 0 (diem), kira2 butuh 0.25 detik
+    var target = sedangJalan ? 1 : 0;
+    faktorJalan += (target - faktorJalan) * Math.min(dt * 8, 1);
+    var faktorDiem = 1 - faktorJalan;
+
+    // ayunan langkah, makin kecil kalau mau berhenti
     var langkah = t * 2 * Math.PI * 0.9;
-    var ayun = Math.sin(langkah) * 0.4;
+    var ayun = Math.sin(langkah) * 0.4 * faktorJalan;
 
+    // napas pas diem, pelan naik turun
+    var napas = Math.sin(t * 2.5);
+
+    // kaki kiri kanan gantian
     LIBS.set_I4(pinggulKiri.MOVEMATRIX);
     LIBS.rotateX(pinggulKiri.MOVEMATRIX, ayun);
     LIBS.set_position(pinggulKiri.MOVEMATRIX, -0.16, -0.2, 0);
@@ -395,33 +414,39 @@ export function animasiMagnetBomber(time) {
     LIBS.set_position(pinggulKanan.MOVEMATRIX, 0.16, -0.2, 0);
 
     // tangan ayun kebalikan dari kaki di sisi yang sama
-    // rotateZ = lengan agak ngebuka keluar, rotateX = ayunannya
+    // rotateZ = lengan agak ngebuka keluar (pas diem ikut napas dikit), rotateX = ayunan jalan
+    var buka = 0.5 + napas * 0.06 * faktorDiem;
+
     LIBS.set_I4(bahuKiri.MOVEMATRIX);
-    LIBS.rotateZ(bahuKiri.MOVEMATRIX, -0.5);
+    LIBS.rotateZ(bahuKiri.MOVEMATRIX, -buka);
     LIBS.rotateX(bahuKiri.MOVEMATRIX, -ayun * 0.9);
     LIBS.set_position(bahuKiri.MOVEMATRIX, -0.2, 0.06, 0);
 
     LIBS.set_I4(bahuKanan.MOVEMATRIX);
-    LIBS.rotateZ(bahuKanan.MOVEMATRIX, 0.5);
+    LIBS.rotateZ(bahuKanan.MOVEMATRIX, buka);
     LIBS.rotateX(bahuKanan.MOVEMATRIX, ayun * 0.9);
     LIBS.set_position(bahuKanan.MOVEMATRIX, 0.2, 0.06, 0);
 
-    // badan naik turun dikit tiap langkah
+    // badan: pas jalan naik turun tiap langkah + agak condong ke depan
+    // pas diem naik turun pelan kayak napas
+    var naik = Math.abs(Math.sin(langkah)) * 0.035 * faktorJalan + (napas + 1) * 0.01 * faktorDiem;
     LIBS.set_I4(badan.MOVEMATRIX);
-    LIBS.set_position(badan.MOVEMATRIX, 0, 0.7 + Math.abs(Math.sin(langkah)) * 0.035, 0);
+    LIBS.rotateX(badan.MOVEMATRIX, 0.08 * faktorJalan);
+    LIBS.set_position(badan.MOVEMATRIX, 0, 0.7 + naik, 0);
 
-    // antena di tengah atas kepala, goyang dikit ke kiri kanan
+    // antena goyang, lebih kenceng pas jalan
     LIBS.set_I4(antena.MOVEMATRIX);
-    LIBS.rotateZ(antena.MOVEMATRIX, Math.sin(t * 3) * 0.12);
+    LIBS.rotateZ(antena.MOVEMATRIX, Math.sin(t * 3) * (0.08 + 0.1 * faktorJalan));
     LIBS.set_position(antena.MOVEMATRIX, 0, 0.37, -0.05);
 
-    // ekor syal berkibar, makin bawah makin ke samping
+    // ekor syal berkibar, pas jalan lebih kenceng
+    var kibar = 0.5 + 0.5 * faktorJalan;
     var syal = [[syalMerah, 0.5, 0.27], [syalBiru, 0.9, 0.21]];
     for (var i = 0; i < syal.length; i++) {
         var o = syal[i][0];
         LIBS.set_I4(o.MOVEMATRIX);
-        LIBS.rotateX(o.MOVEMATRIX, Math.sin(t * 5 + i) * 0.08);
-        LIBS.rotateY(o.MOVEMATRIX, syal[i][1] + Math.sin(t * 4 + i) * 0.15);
+        LIBS.rotateX(o.MOVEMATRIX, Math.sin(t * 5 + i) * 0.08 * kibar);
+        LIBS.rotateY(o.MOVEMATRIX, syal[i][1] + Math.sin(t * 4 + i) * 0.15 * kibar);
         LIBS.set_position(o.MOVEMATRIX, 0, syal[i][2], -0.16);
     }
 }
