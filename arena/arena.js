@@ -1,17 +1,17 @@
 import { Objek } from "../shared/objek.js";
 import { buatEllipsoid, buatKotak } from "../shared/bentuk.js";
 
-// ukuran arena dalam petak, 1 petak = 1 unit
-// x dari -7 sampai 7, z dari -5 sampai 5, pinggirnya tembok
-var LEBAR = 15;
-var DALAM = 11;
+// ukuran arena dalam petak, 1 petak = 1 unit, harus ganjil biar ada petak tengah
+// x dari -12 sampai 12, z dari -9 sampai 9, pinggirnya tembok
+var LEBAR = 25;
+var DALAM = 19;
 
-// pilar di pojok2, [x, z]
-var PILAR = [
-    [-5, -3], [-3, -3], [3, -3], [5, -3],
-    [-5, -1], [5, -1],
-    [-5, 1], [5, 1],
-    [-5, 3], [-3, 3], [3, 3], [5, 3]
+// pola pilar di 1 pojok, [jarak dari tembok samping, jarak dari tembok depan/belakang]
+// pola ini dicopy ke 4 pojok, jadi tengah arena tetep kosong
+var POLA_PILAR = [
+    [2, 2], [4, 2], [6, 2],
+    [2, 4], [4, 4],
+    [2, 6]
 ];
 
 // gabungin banyak bentuk jadi 1 vertex & faces biar digambarnya sekali aja
@@ -94,9 +94,16 @@ export function buatArena(GL) {
     var pilar = buatKotak(0.82, 0.55, 0.82);
     var atasPilar = buatKotak(0.56, 0.04, 0.56);
     var daftarPilar = [], daftarAtas = [];
-    for (var p of PILAR) {
-        daftarPilar.push({ bentuk: pilar, x: p[0], y: 0.275, z: p[1] });
-        daftarAtas.push({ bentuk: atasPilar, x: p[0], y: 0.56, z: p[1] });
+    for (var p of POLA_PILAR) {
+        // sx, sz = pojok mana (kiri/kanan, belakang/depan)
+        for (var sx of [-1, 1]) {
+            for (var sz of [-1, 1]) {
+                var px = sx * (setX - p[0]);
+                var pz = sz * (setZ - p[1]);
+                daftarPilar.push({ bentuk: pilar, x: px, y: 0.275, z: pz });
+                daftarAtas.push({ bentuk: atasPilar, x: px, y: 0.56, z: pz });
+            }
+        }
     }
 
     var pp = gabung(daftarPilar);
