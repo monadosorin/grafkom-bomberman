@@ -296,3 +296,47 @@ export function generateBSpline(controlPoint, m, degree) {
     }
     return curves;
 }
+// ========== ditambahkan oleh Nick, dipakai nick/golemBomber.js ==========
+
+// MESH MENGIKUTI KURVA: menyapukan penampang elips sepanjang sebuah kurva 2D
+// (hasil generateBSpline atau kurva titik [x, y, x, y, ...] lainnya).
+//   kurva  = [x, y, x, y, ...] hasil generateBSpline
+//   rA     = jari-jari penampang searah bidang kurva (lebar)
+//   rB     = jari-jari penampang ke arah z (tebal)
+//   taper  = fungsi(t) 0..1 yang menentukan besar penampang sepanjang kurva (opsional)
+export function buatMeshKurva(kurva, rA, rB, taper, sector) {
+    taper = taper || function () { return 1; };
+    var vertex = [];
+    var faces = [];
+    var n = kurva.length / 2;
+
+    for (var i = 0; i < n; i++) {
+        var a = Math.max(i - 1, 0);
+        var b = Math.min(i + 1, n - 1);
+        var tx = kurva[b * 2] - kurva[a * 2];
+        var ty = kurva[b * 2 + 1] - kurva[a * 2 + 1];
+        var p = Math.sqrt(tx * tx + ty * ty) || 1;
+        tx /= p; ty /= p;
+        var nx = -ty, ny = tx;
+        var s = taper(i / (n - 1));
+
+        for (var j = 0; j <= sector; j++) {
+            var u = 2 * Math.PI * j / sector;
+            vertex.push(
+                kurva[i * 2] + s * rA * Math.cos(u) * nx,
+                kurva[i * 2 + 1] + s * rA * Math.cos(u) * ny,
+                s * rB * Math.sin(u)
+            );
+        }
+    }
+
+    for (var i = 0; i < n - 1; i++) {
+        for (var j = 0; j < sector; j++) {
+            var p1 = i * (sector + 1) + j;
+            var p2 = p1 + sector + 1;
+            faces.push(p1, p2, p1 + 1);
+            faces.push(p1 + 1, p2, p2 + 1);
+        }
+    }
+    return { vertex: vertex, faces: faces };
+}
