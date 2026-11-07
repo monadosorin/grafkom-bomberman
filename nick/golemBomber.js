@@ -46,6 +46,7 @@ var WARNA = {
 };
 
 // sendi (pivot) yang diatur di aturPoseDiam
+var rootGolem;   // akar karakter, dipakai animasi untuk memindahkan dan menghadapkan golem
 var badanPivot, kepalaPivot, antenaPivot, bungaPivot;
 var bahuKiri, bahuKanan, sikuKiri, sikuKanan;
 var pinggulKiri, pinggulKanan, telapakKiri, telapakKanan;
@@ -59,6 +60,14 @@ var POS_ANTENA = { x: -0.08, y: 1.23, z: 0.07 };
 var POS_BUNGA = { x: -0.42, y: 1.07, z: 0.12 };
 var TINGGI_KAKI = 0.62;
 var CONDONG = 0.06;
+
+// pengaturan animasi jalan
+var JARAK_JALAN = 2.4;          // total jarak maju sebelum golem berbalik mundur (0 = jalan di tempat)
+var PERIODE_JALAN = 8;          // detik untuk satu siklus penuh: maju lalu mundur
+var AYUN_KAKI = 0.5;            // sudut ayun kaki, dalam radian
+var AYUN_TANGAN = 0.35;         // sudut ayun tangan, dalam radian
+var PANJANG_KAKI = 0.82;        // jarak dari pinggul sampai alas telapak
+var ANGKAT_KAKI = 0.09;         // tinggi kaki terangkat saat terayun maju
 
 /* ===================== FUNGSI PEMBANTU ===================== */
 
@@ -200,6 +209,49 @@ function buatPundak(GL, induk, cx, cy, cz) {
     induk.addChild(bentuk(GL, buatTorus(r - 0.08, r - 0.08, 0.14, 0.3, 12, 28), WARNA.oranye, cx, cy, cz));
 }
 
+// tinggi permukaan depan pundak (z) pada posisi (dx, dy) terhadap pusat pundak,
+// supaya tanda bulan menempel di kulit pundak. permukaannya adalah yang terluar
+// antara mangkok paraboloid atas (r = 0.6, h = 0.6) dan toroid gemuk di sambungannya.
+function zPermukaanPundak(dx, dy) {
+    var r = 0.6, h = 0.6;
+    var mangkok = dy >= 0 ? r * Math.sqrt(Math.max(0, 1 - dy / h)) : 0;
+    var torus = Math.abs(dy) < 0.3 ? (r - 0.08) + 0.14 * Math.sqrt(1 - (dy / 0.3) * (dy / 0.3)) : 0;
+    var rho = Math.max(mangkok, torus);
+    return -0.1 + Math.sqrt(Math.max(rho * rho - dx * dx, 0.01));
+}
+
+// ellipsoid modifikasi (kapsul): bulan sabit dari rangkaian kapsul pipih yang menyusuri busur.
+// tebal kapsul paling besar di tengah busur dan menipis ke kedua ujung, jadi hasilnya
+// berbentuk sabit dengan mulut terbuka ke kanan atas.
+function buatBulanSabit(GL, induk, cx, cy) {
+    var Rm = 0.095;                // jari-jari busur
+    var tebalMaks = 0.033;         // setengah tebal sabit di bagian tengah
+    var sudutAwal = 70 * Math.PI / 180;
+    var sudutAkhir = 350 * Math.PI / 180;
+    var n = 14;                    // jumlah kapsul
+    var titik = [];
+    for (var i = 0; i <= n; i++) {
+        var t = i / n;
+        var a = sudutAwal + (sudutAkhir - sudutAwal) * t;
+        titik.push({
+            x: cx + Rm * Math.cos(a),
+            y: cy + Rm * Math.sin(a),
+            w: 0.004 + tebalMaks * Math.pow(Math.sin(Math.PI * t), 0.8)
+        });
+    }
+    for (var i = 0; i < n; i++) {
+        var p = titik[i], q = titik[i + 1];
+        var dx = q.x - p.x, dy = q.y - p.y;
+        var panjang = Math.sqrt(dx * dx + dy * dy);
+        var w = (p.w + q.w) / 2;
+        var mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+        var z = zPermukaanPundak(mx - 1.15, my - 2.3) + 0.02;
+        // kapsul berporos sumbu y, jadi diputar di sumbu z mengikuti arah ruas busur
+        induk.addChild(bentuk(GL, buatKapsul(w, w, 0.025, panjang, 6, 10), WARNA.hitam,
+            mx, my, z, 0, 0, Math.atan2(-dx, dy)));
+    }
+}
+
 function buatBahuPelindung(GL, induk) {
     buatPundak(GL, induk, -1.15, 2.3, -0.1);
     buatPundak(GL, induk, 1.15, 2.3, -0.1);
@@ -209,12 +261,8 @@ function buatBahuPelindung(GL, induk) {
     induk.addChild(bentuk(GL, garis, WARNA.hitam, -1.2, 2.42, 0.57, 0, 0, 0.7));
     induk.addChild(bentuk(GL, garis, WARNA.hitam, -1.2, 2.42, 0.57, 0, 0, -0.7));
 
-    // ellipsoid modifikasi (kapsul): tanda sabit di pundak kanan dari kapsul-kapsul kecil membentuk busur
-    for (var k = 0; k < 4; k++) {
-        var a = -0.2 + k * 0.45;
-        induk.addChild(bentuk(GL, buatKapsul(0.025, 0.02, 0.025, 0.06, 6, 8), WARNA.hitam,
-            1.2 + 0.12 * Math.sin(a), 2.55 - 0.12 * Math.cos(a), 0.6, 0, 0, -a + 1.2));
-    }
+    // ellipsoid modifikasi (kapsul): tanda bulan sabit hitam di pundak kanan
+    buatBulanSabit(GL, induk, 1.15, 2.48);
 }
 
 // armor lengan: mesh kurva (pelat melengkung yang melebar ke siku) + toroid modifikasi (cincin abu)
@@ -283,6 +331,7 @@ function buatKaki(GL, sisi) {
 
 export function buatGolemBomber(GL) {
     var root = new Objek(GL);
+    rootGolem = root;
     LIBS.scale(root.MOVEMATRIX, SKALA, SKALA, SKALA);
 
     badanPivot = pivot(GL, 0, 0, 0);
@@ -300,8 +349,6 @@ export function buatGolemBomber(GL) {
 
     return root;
 }
-
-/* ===================== ANIMASI ===================== */
 
 /* ===================== POSE DIAM ===================== */
 
@@ -321,6 +368,58 @@ function aturPoseDiam() {
     atur(bungaPivot, POS_BUNGA.x, POS_BUNGA.y, POS_BUNGA.z, 0, 0, 0.1);
 }
 
-// tidak ada animasi. fungsi ini tetap ada karena main.js dan preview.html memanggilnya tiap frame
+/* ===================== ANIMASI JALAN ===================== */
+
+// dipanggil main.js dan preview.html tiap frame. time dalam milidetik.
+// satu siklus langkah: kaki kiri maju lalu kaki kanan maju, tangan mengayun berlawanan dengan kaki di sisi yang sama.
+// pada gerakan sendi, rotateX negatif = ke depan (golem menghadap +z).
 export function animasiGolemBomber(time) {
+    var t = time / 1000;
+
+    // maju mundur di sepanjang sumbu z, golem tetap menghadap depan (+z) sehingga saat mundur ia berjalan mundur.
+    // posisi mengikuti gelombang sinus: melambat di ujung lintasan, berhenti sebentar, lalu berbalik arah
+    var fase = 2 * Math.PI * t / PERIODE_JALAN;
+    var posisi = (JARAK_JALAN / 2) * Math.sin(fase);   // positif = di depan titik tengah
+    var arah = Math.cos(fase);                          // -1 sampai 1, tandanya arah gerak (+ maju, - mundur)
+    LIBS.set_I4(rootGolem.MOVEMATRIX);
+    LIBS.scale(rootGolem.MOVEMATRIX, SKALA, SKALA, SKALA);
+    LIBS.set_position(rootGolem.MOVEMATRIX, 0, 0, posisi);
+
+    // fase langkah dihitung dari jarak tempuh, bukan dari waktu: telapak yang menapak selalu bergeser sama dengan lantai
+    // (tidak tergelincir), dan begitu golem mundur gerakan kakinya ikut berbalik. jarak per siklus = 4 * panjang kaki * sin(ayun)
+    var jarakPerSiklus = 4 * PANJANG_KAKI * Math.sin(AYUN_KAKI) * SKALA;
+    var langkah = JARAK_JALAN > 0 ? 2 * Math.PI * posisi / jarakPerSiklus : t * 2 * Math.PI * 0.6;
+    var s = Math.sin(langkah);   // +1: kaki kiri paling depan, -1: kaki kanan paling depan
+    var c = Math.cos(langkah);   // positif: kaki kiri sedang terayun, negatif: kaki kanan
+    var miring = CONDONG + 0.04 * (JARAK_JALAN > 0 ? arah : 0);   // badan condong ke depan saat maju, ke belakang saat mundur
+
+    // kaki: ayun bergantian, kaki yang sedang terayun maju diangkat sedikit
+    // sudut kaki memakai gelombang mendekati segitiga (bukan sinus murni): telapak yang menapak bergeser mundur dengan
+    // kecepatan hampir tetap, jadi tidak tergelincir di lantai. 0.97 = sudut segitiga dibulatkan sedikit agar tidak patah
+    var segitiga = Math.asin(0.97 * s) / Math.asin(0.97);
+    var ayun = segitiga * AYUN_KAKI;
+    var angkatKiri = ANGKAT_KAKI * Math.sqrt(Math.max(0, c));
+    var angkatKanan = ANGKAT_KAKI * Math.sqrt(Math.max(0, -c));
+    atur(pinggulKiri, -POS_PINGGUL.x, POS_PINGGUL.y + angkatKiri, POS_PINGGUL.z, -ayun, 0, 0);
+    atur(pinggulKanan, POS_PINGGUL.x, POS_PINGGUL.y + angkatKanan, POS_PINGGUL.z, ayun, 0, 0);
+    // telapak diputar balik terhadap kaki dan badan supaya alasnya tetap rata dengan tanah
+    atur(telapakKiri, 0, -TINGGI_KAKI, 0, -miring + ayun, 0, 0);
+    atur(telapakKanan, 0, -TINGGI_KAKI, 0, -miring - ayun, 0, 0);
+
+    // badan turun sedikit saat kaki membuka lebar dan memutar pelan mengikuti langkah.
+    // faktor 0.25 (bukan 1) sengaja kecil supaya telapak dan kepalan tidak sampai menembus lantai
+    var turun = 0.25 * PANJANG_KAKI * (1 - Math.cos(ayun));
+    // 0.02: sedikit di atas lantai karena badan yang condong menurunkan telapak, dan supaya alas telapak tidak berimpit dengan lantai
+    atur(badanPivot, 0, 0.02 - turun, 0, miring, -s * 0.05, s * 0.025);
+
+    // tangan: berlawanan dengan kaki di sisi yang sama, siku menekuk lebih saat tangan terayun maju
+    atur(bahuKiri, -POS_BAHU.x, POS_BAHU.y, POS_BAHU.z, s * AYUN_TANGAN, 0, -0.12);
+    atur(bahuKanan, POS_BAHU.x, POS_BAHU.y, POS_BAHU.z, -s * AYUN_TANGAN, 0, 0.12);
+    atur(sikuKiri, 0, POS_SIKU.y, 0, -0.3 - 0.3 * Math.max(0, -s), 0, 0);
+    atur(sikuKanan, 0, POS_SIKU.y, 0, -0.3 - 0.3 * Math.max(0, s), 0, 0);
+
+    // kepala menoleh berlawanan dengan badan dan mengangguk tiap langkah; antena dan bunga bergoyang tertinggal
+    atur(kepalaPivot, POS_KEPALA.x, POS_KEPALA.y, POS_KEPALA.z, 0.03 * Math.cos(2 * langkah), s * 0.03, 0);
+    atur(antenaPivot, POS_ANTENA.x, POS_ANTENA.y, POS_ANTENA.z, 0, 0, 0.3 + 0.12 * Math.sin(2 * langkah - 0.8));
+    atur(bungaPivot, POS_BUNGA.x, POS_BUNGA.y, POS_BUNGA.z, 0, 0, 0.1 + 0.1 * Math.sin(2 * langkah - 0.4));
 }
