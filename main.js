@@ -31,4 +31,4 @@ mulaiScene(function (GL) {
         // arena udah punya lantai sendiri
         lantai: false
     };
-}, 26);
+}, 33);
