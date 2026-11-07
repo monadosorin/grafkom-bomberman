@@ -2,7 +2,10 @@ import { LIBS } from "./libs.js";
 import { Objek } from "./objek.js";
 
 // buatScene(GL) harus return { objek: [...], animasi: function (time) {...} }
-// tambahin lantai: false kalau ga mau lantai abu2 bawaan
+// tambahan (boleh ga dipake):
+//   lantai: false      -> ga pake lantai abu2 bawaan
+//   kamera: "bebas"    -> kamera bebas (WASD + drag mouse), kalau ga ada pake kamera muter biasa
+//   label: [{ teks, x, y, z, warna }, ...] -> tulisan di posisi 3D, muncul/ilang pake tombol G
 export function mulaiScene(buatScene, jarakKamera) {
     var CANVAS = document.getElementById("mycanvas");
     CANVAS.width = window.innerWidth;
@@ -16,6 +19,17 @@ export function mulaiScene(buatScene, jarakKamera) {
         return false;
     }
 
+    // canvas 2D di atas canvas webgl buat nulis label sama petunjuk
+    var KANVAS2D = document.createElement("canvas");
+    KANVAS2D.style.position = "absolute";
+    KANVAS2D.style.left = "0";
+    KANVAS2D.style.top = "0";
+    KANVAS2D.style.pointerEvents = "none";
+    KANVAS2D.width = window.innerWidth;
+    KANVAS2D.height = window.innerHeight;
+    document.body.appendChild(KANVAS2D);
+    var CTX = KANVAS2D.getContext("2d");
+
     /*========================= MOUSE ========================= */
     var AMORTIZATION = 0.95;
     var drag = false;
@@ -23,6 +37,11 @@ export function mulaiScene(buatScene, jarakKamera) {
     var dX = 0, dY = 0;
     var THETA = 0, PHI = 0.3;
     var jarak = jarakKamera || 10;
+
+    // kamera bebas: posisi kamera, yaw = nengok kiri kanan, pitch = nengok atas bawah
+    var modeBebas = false;
+    var posKamera = [0, jarak * 0.48, jarak * 0.8];
+    var yaw = 0, pitch = 0.55;
 
     var mouseDown = function (e) {
         drag = true;
@@ -39,16 +58,26 @@ export function mulaiScene(buatScene, jarakKamera) {
         if (!drag) return false;
         dX = (e.pageX - x_prev) * Math.PI / CANVAS.width;
         dY = (e.pageY - y_prev) * Math.PI / CANVAS.height;
-        THETA += dX;
-        PHI += dY;
+        if (modeBebas) {
+            yaw += dX;
+            pitch += dY;
+            dX = 0, dY = 0;
+        } else {
+            THETA += dX;
+            PHI += dY;
+        }
         x_prev = e.pageX, y_prev = e.pageY;
         e.preventDefault();
     };
 
-    // scroll buat zoom
+    // scroll: kamera biasa = zoom, kamera bebas = maju mundur
     var mouseWheel = function (e) {
-        jarak += e.deltaY * 0.01;
-        jarak = Math.min(Math.max(jarak, 2), 40);
+        if (modeBebas) {
+            gerakKamera(-e.deltaY * 0.02, 0, 0);
+        } else {
+            jarak += e.deltaY * 0.01;
+            jarak = Math.min(Math.max(jarak, 2), 40);
+        }
         e.preventDefault();
     };
 
@@ -57,6 +86,23 @@ export function mulaiScene(buatScene, jarakKamera) {
     CANVAS.addEventListener("mouseout", mouseUp, false);
     CANVAS.addEventListener("mousemove", mouseMove, false);
     CANVAS.addEventListener("wheel", mouseWheel, false);
+
+    /*========================= KEYBOARD ========================= */
+    var tombol = {};
+    var tampilLabel = false;
+
+    window.addEventListener("keydown", function (e) {
+        var k = e.key.toLowerCase();
+        tombol[k] = true;
+        if (k == "g") tampilLabel = !tampilLabel;
+    });
+    window.addEventListener("keyup", function (e) {
+        tombol[e.key.toLowerCase()] = false;
+    });
+    // kalau pindah tab tombolnya dilepas semua biar kamera ga jalan sendiri
+    window.addEventListener("blur", function () {
+        tombol = {};
+    });
 
     /*========================= SHADERS ========================= */
     var shader_vertex_source = `
@@ -128,14 +174,25 @@ export function mulaiScene(buatScene, jarakKamera) {
     GL.useProgram(SHADER_PROGRAM);
 
     /*========================= MATRIX ========================= */
-    var PROJMATRIX = LIBS.get_projection(40, CANVAS.width / CANVAS.height, 0.5, 100);
+    var PROJMATRIX = LIBS.get_projection(40, CANVAS.width / CANVAS.height, 0.5, 150);
     var VIEWMATRIX = LIBS.get_I4();
 
     window.addEventListener("resize", function () {
         CANVAS.width = window.innerWidth;
         CANVAS.height = window.innerHeight;
-        PROJMATRIX = LIBS.get_projection(40, CANVAS.width / CANVAS.height, 0.5, 100);
+        KANVAS2D.width = window.innerWidth;
+        KANVAS2D.height = window.innerHeight;
+        PROJMATRIX = LIBS.get_projection(40, CANVAS.width / CANVAS.height, 0.5, 150);
     });
+
+    // gerakin kamera bebas: maju (ke arah liat), kanan, naik
+    function gerakKamera(maju, kanan, naik) {
+        // baris ke-3 VIEWMATRIX = arah belakang kamera, baris ke-1 = arah kanan kamera
+        var m = VIEWMATRIX;
+        posKamera[0] += -m[2] * maju + m[0] * kanan;
+        posKamera[1] += -m[6] * maju + m[4] * kanan + naik;
+        posKamera[2] += -m[10] * maju + m[8] * kanan;
+    }
 
     /*========================= LANTAI ========================= */
     var lantai = new Objek(GL,
@@ -150,6 +207,53 @@ export function mulaiScene(buatScene, jarakKamera) {
     );
 
     var scene = buatScene(GL);
+    modeBebas = scene.kamera == "bebas";
+
+    /*========================= LABEL ========================= */
+    // ubah posisi 3D jadi posisi di layar, null kalau di belakang kamera
+    function keLayar(x, y, z) {
+        var PV = LIBS.multiply(PROJMATRIX, VIEWMATRIX);
+        var cx = PV[0] * x + PV[4] * y + PV[8] * z + PV[12];
+        var cy = PV[1] * x + PV[5] * y + PV[9] * z + PV[13];
+        var cw = PV[3] * x + PV[7] * y + PV[11] * z + PV[15];
+        if (cw <= 0.1) return null;
+        return [(cx / cw + 1) / 2 * KANVAS2D.width, (1 - cy / cw) / 2 * KANVAS2D.height];
+    }
+
+    function gambar2D() {
+        CTX.clearRect(0, 0, KANVAS2D.width, KANVAS2D.height);
+        CTX.textAlign = "center";
+        CTX.textBaseline = "middle";
+
+        if (tampilLabel && scene.label) {
+            CTX.font = "bold 13px monospace";
+            for (var l of scene.label) {
+                var p = keLayar(l.x, l.y, l.z);
+                if (!p) continue;
+                var lebar = CTX.measureText(l.teks).width + 8;
+                CTX.fillStyle = "rgba(0, 0, 0, 0.55)";
+                CTX.fillRect(p[0] - lebar / 2, p[1] - 9, lebar, 18);
+                CTX.fillStyle = l.warna || "white";
+                CTX.fillText(l.teks, p[0], p[1]);
+            }
+        }
+
+        // petunjuk tombol di pojok kiri bawah
+        if (modeBebas || scene.label) {
+            var tulisan = [];
+            if (modeBebas) tulisan.push("WASD: gerak   Q/E: turun/naik   Shift: cepet   drag mouse: nengok");
+            if (scene.label) tulisan.push("G: " + (tampilLabel ? "sembunyiin" : "tampilin") + " koordinat petak");
+            CTX.font = "13px monospace";
+            CTX.textAlign = "left";
+            for (var i = 0; i < tulisan.length; i++) {
+                var yy = KANVAS2D.height - 16 - (tulisan.length - 1 - i) * 18;
+                CTX.fillStyle = "rgba(0, 0, 0, 0.5)";
+                CTX.fillRect(8, yy - 9, CTX.measureText(tulisan[i]).width + 10, 18);
+                CTX.fillStyle = "white";
+                CTX.fillText(tulisan[i], 13, yy);
+            }
+        }
+    }
 
     /*========================= DRAWING ========================= */
     GL.enable(GL.DEPTH_TEST);
@@ -157,17 +261,41 @@ export function mulaiScene(buatScene, jarakKamera) {
     GL.clearColor(0.15, 0.15, 0.2, 1.0);
     GL.clearDepth(1.0);
 
+    var time_prev = 0;
     var animate = function (time) {
-        if (!drag) {
-            dX *= AMORTIZATION, dY *= AMORTIZATION;
-            THETA += dX, PHI += dY;
-        }
-        PHI = Math.min(Math.max(PHI, -0.2), 1.5);
+        var dt = Math.min((time - time_prev) / 1000, 0.1);
+        time_prev = time;
 
-        LIBS.set_I4(VIEWMATRIX);
-        LIBS.rotateY(VIEWMATRIX, THETA);
-        LIBS.rotateX(VIEWMATRIX, PHI);
-        LIBS.set_position(VIEWMATRIX, 0, -1, -jarak);
+        if (modeBebas) {
+            pitch = Math.min(Math.max(pitch, -1.5), 1.5);
+
+            // susun VIEWMATRIX = rotasi x geser ke posisi kamera
+            LIBS.set_I4(VIEWMATRIX);
+            LIBS.rotateY(VIEWMATRIX, yaw);
+            LIBS.rotateX(VIEWMATRIX, pitch);
+            var m = VIEWMATRIX, p = posKamera;
+            m[12] = -(m[0] * p[0] + m[4] * p[1] + m[8] * p[2]);
+            m[13] = -(m[1] * p[0] + m[5] * p[1] + m[9] * p[2]);
+            m[14] = -(m[2] * p[0] + m[6] * p[1] + m[10] * p[2]);
+
+            // WASD gerak, Q/E turun naik, shift biar cepet
+            var cepat = (tombol["shift"] ? 24 : 8) * dt;
+            var maju = (tombol["w"] ? 1 : 0) - (tombol["s"] ? 1 : 0);
+            var kanan = (tombol["d"] ? 1 : 0) - (tombol["a"] ? 1 : 0);
+            var naik = (tombol["e"] ? 1 : 0) - (tombol["q"] ? 1 : 0);
+            gerakKamera(maju * cepat, kanan * cepat, naik * cepat);
+        } else {
+            if (!drag) {
+                dX *= AMORTIZATION, dY *= AMORTIZATION;
+                THETA += dX, PHI += dY;
+            }
+            PHI = Math.min(Math.max(PHI, -0.2), 1.5);
+
+            LIBS.set_I4(VIEWMATRIX);
+            LIBS.rotateY(VIEWMATRIX, THETA);
+            LIBS.rotateX(VIEWMATRIX, PHI);
+            LIBS.set_position(VIEWMATRIX, 0, -1, -jarak);
+        }
 
         if (scene.animasi) scene.animasi(time);
 
@@ -183,6 +311,7 @@ export function mulaiScene(buatScene, jarakKamera) {
         }
 
         GL.flush();
+        gambar2D();
         window.requestAnimationFrame(animate);
     };
     animate(0);

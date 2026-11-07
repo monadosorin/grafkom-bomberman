@@ -19,6 +19,56 @@ var POLA_PILAR = [
     [2, 4]
 ];
 
+// ===== koordinat petak =====
+// petak (x, y): x = kiri (-) ke kanan (+), y = depan (-) ke belakang (+), (0, 0) = petak tengah
+// depan = deket kamera awal. tembok ada di x = -7 / 7 sama y = -5 / 5
+// jadi petak yang bisa diinjek: x dari -6 sampai 6, y dari -4 sampai 4
+var BATAS_X = (LEBAR - 1) / 2;
+var BATAS_Y = (DALAM - 1) / 2;
+
+// daftar petak pilar [x, y], pola di atas dicopy ke 4 pojok
+var PILAR = [];
+for (var p of POLA_PILAR) {
+    for (var sx of [-1, 1]) {
+        for (var sy of [-1, 1]) {
+            PILAR.push([sx * (BATAS_X - p[0]), sy * (BATAS_Y - p[1])]);
+        }
+    }
+}
+
+// posisi dunia (x, z) dari petak (x, y)
+export function posisiPetak(x, y) {
+    return { x: x * PETAK, z: -y * PETAK };
+}
+
+// true kalau petak itu tembok / pilar / di luar arena
+export function petakDiblok(x, y) {
+    if (Math.abs(x) >= BATAS_X || Math.abs(y) >= BATAS_Y) return true;
+    for (var p of PILAR) {
+        if (p[0] == x && p[1] == y) return true;
+    }
+    return false;
+}
+
+// label koordinat tiap petak buat engine (muncul pas pencet G), pilar warnanya merah
+export function labelPetak() {
+    var label = [];
+    for (var x = -BATAS_X + 1; x <= BATAS_X - 1; x++) {
+        for (var y = -BATAS_Y + 1; y <= BATAS_Y - 1; y++) {
+            var pos = posisiPetak(x, y);
+            var diblok = petakDiblok(x, y);
+            label.push({
+                teks: x + "," + y,
+                x: pos.x,
+                y: diblok ? TINGGI_PILAR + 0.2 : 0.05,
+                z: pos.z,
+                warna: diblok ? "#ff6b6b" : "white"
+            });
+        }
+    }
+    return label;
+}
+
 // gabungin banyak bentuk jadi 1 vertex & faces biar digambarnya sekali aja
 // daftar = [{ bentuk: {vertex, faces}, x, y, z }, ...], tiap bentuk digeser ke (x, y, z)
 function gabung(daftar) {
@@ -102,16 +152,10 @@ export function buatArena(GL) {
     var pilar = buatKotak(PETAK * 0.82, TINGGI_PILAR, PETAK * 0.82);
     var atasPilar = buatKotak(PETAK * 0.56, 0.06, PETAK * 0.56);
     var daftarPilar = [], daftarAtas = [];
-    for (var p of POLA_PILAR) {
-        // sx, sz = pojok mana (kiri/kanan, belakang/depan)
-        for (var sx of [-1, 1]) {
-            for (var sz of [-1, 1]) {
-                var x = sx * (setI - p[0]) * PETAK;
-                var z = sz * (setJ - p[1]) * PETAK;
-                daftarPilar.push({ bentuk: pilar, x: x, y: TINGGI_PILAR / 2, z: z });
-                daftarAtas.push({ bentuk: atasPilar, x: x, y: TINGGI_PILAR + 0.03, z: z });
-            }
-        }
+    for (var p of PILAR) {
+        var pos = posisiPetak(p[0], p[1]);
+        daftarPilar.push({ bentuk: pilar, x: pos.x, y: TINGGI_PILAR / 2, z: pos.z });
+        daftarAtas.push({ bentuk: atasPilar, x: pos.x, y: TINGGI_PILAR + 0.03, z: pos.z });
     }
 
     var pp = gabung(daftarPilar);
