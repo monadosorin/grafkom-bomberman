@@ -5,8 +5,9 @@ import { buatEllipsoid, buatKotak } from "../shared/bentuk.js";
 var LEBAR = 15;
 var DALAM = 11;
 
-// 1 petak = 2 unit, jadi arenanya 30 x 22 unit
-var PETAK = 2;
+// 1 petak = 4 unit, jadi arenanya 60 x 44 unit
+// sengaja gede biar golem (lebarnya ~5 unit) muat lewat lorong di pinggir
+export var PETAK = 4;
 
 // tinggi tembok luar sama pilar (unit)
 var TINGGI_TEMBOK = 1.6;

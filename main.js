@@ -100,4 +100,4 @@ mulaiScene(function (GL) {
         kamera: "bebas",
         label: labelPetak()
     };
-}, 33);
+}, 62);

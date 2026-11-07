@@ -1,6 +1,7 @@
 import { Objek } from "../shared/objek.js";
 import { LIBS } from "../shared/libs.js";
 import { buatEllipsoid } from "../shared/bentuk.js";
+import { PETAK } from "./arena.js";
 
 // bom yang bisa dilempar sama Penggerak, terus detak, terus meledak
 // model = Objek bom nya (misal buatBomb(GL) punya kevin)
@@ -15,12 +16,14 @@ import { buatEllipsoid } from "../shared/bentuk.js";
 var LAMA_LEDAK = 0.8;
 
 // ledakan bentuk plus kayak di bomberman: bola kuning di tengah + 2 ellipsoid oranye panjang (x sama z)
+// ukurannya ngikutin ukuran petak, lengannya nyampe kira2 1.6 petak
 function buatApi(GL) {
     var api = new Objek(GL);
 
-    var lenganX = buatEllipsoid(3.2, 0.7, 0.7, 12, 24);
-    var lenganZ = buatEllipsoid(0.7, 0.7, 3.2, 12, 24);
-    var tengah = buatEllipsoid(1.1, 1.1, 1.1, 16, 24);
+    var panjang = 1.6 * PETAK, tebal = 0.3 * PETAK, tengahR = 0.45 * PETAK;
+    var lenganX = buatEllipsoid(panjang, tebal, tebal, 12, 24);
+    var lenganZ = buatEllipsoid(tebal, tebal, panjang, 12, 24);
+    var tengah = buatEllipsoid(tengahR, tengahR, tengahR, 16, 24);
     api.addChild(new Objek(GL, lenganX.vertex, lenganX.faces, [1.0, 0.45, 0.05]));
     api.addChild(new Objek(GL, lenganZ.vertex, lenganZ.faces, [1.0, 0.45, 0.05]));
     api.addChild(new Objek(GL, tengah.vertex, tengah.faces, [1.0, 0.85, 0.2]));
@@ -91,7 +94,7 @@ export class Bom {
             // api nya gede terus kecil lagi (setengah gelombang sin), agak naik dari lantai
             var s = Math.sin(k * Math.PI);
             this.skala(this.api, s);
-            LIBS.set_position(this.api.MOVEMATRIX, 0, 0.7 * s, 0);
+            LIBS.set_position(this.api.MOVEMATRIX, 0, 0.3 * PETAK * s, 0);
         }
     }
 }

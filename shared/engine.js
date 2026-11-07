@@ -76,7 +76,7 @@ export function mulaiScene(buatScene, jarakKamera) {
             gerakKamera(-e.deltaY * 0.02, 0, 0);
         } else {
             jarak += e.deltaY * 0.01;
-            jarak = Math.min(Math.max(jarak, 2), 40);
+            jarak = Math.min(Math.max(jarak, 2), 120);
         }
         e.preventDefault();
     };
@@ -279,7 +279,7 @@ export function mulaiScene(buatScene, jarakKamera) {
             m[14] = -(m[2] * p[0] + m[6] * p[1] + m[10] * p[2]);
 
             // WASD gerak, Q/E turun naik, shift biar cepet
-            var cepat = (tombol["shift"] ? 24 : 8) * dt;
+            var cepat = (tombol["shift"] ? 42 : 14) * dt;
             var maju = (tombol["w"] ? 1 : 0) - (tombol["s"] ? 1 : 0);
             var kanan = (tombol["d"] ? 1 : 0) - (tombol["a"] ? 1 : 0);
             var naik = (tombol["e"] ? 1 : 0) - (tombol["q"] ? 1 : 0);
