@@ -32,6 +32,7 @@ mulaiScene(function (GL) {
     //   hadap(derajat, detik)  = muter, 0 = bawah (depan), 90 = kanan, 180 = atas (belakang), -90 = kiri
     //   sampai(detik)          = tunggu sampe detik ke-sekian dari awal, biar urutan antar bomber pas
     //   lempar(bom, x, y, detik, sumbu) = lempar bom ke petak (x, y), meledak sumbu detik abis mendarat
+    //                            api nya nyebar 3 petak bentuk plus, bomber yang kena langsung ilang
     //   ulang = true           = kalau udah habis ulang dari awal (jadi akhirnya harus balik ke petak awal)
     //
     // jalan kira2 1.6 petak per detik, golem 1.3 (soalnya gede)
@@ -42,6 +43,9 @@ mulaiScene(function (GL) {
     var gerakKevin = new Penggerak(tempatKevin, -6, 2, 1, ATAS);    // white bomber
     var gerakFabio = new Penggerak(tempatFabio, -3, 4, 1, KIRI);    // magnet bomber
     var gerakNick = new Penggerak(tempatNick, -2, -4, 1.5, KIRI);   // golem bomber, 1.5x lebih gede
+
+    // bomber yang bisa kena ledakan bom, kalau kena langsung ilang
+    bom.korban = [gerakKevin, gerakFabio, gerakNick];
 
     // 1. (0 - 2 detik) kamera ke white bomber, diatur manual
 
@@ -71,14 +75,13 @@ mulaiScene(function (GL) {
     // 9. white ngadep bawah, lempar bom ke (6, -4)
     gerakKevin.sampai(27.8).hadap(BAWAH, 0.4).diam(0.2).lempar(bom, 6, -4, 1.4, 3);
 
-    // 10. golem ngadep kanan terus ke (3, 4), kamera diatur manual
-    //     lewat (1, -4) sama (1, 4) soalnya golem kegedean buat lewat sela2 pilar
-    gerakNick.sampai(30).hadap(KANAN, 0.3).jalanKe(1, -4, 2.5).jalanKe(1, 4, 5).jalanKe(3, 4, 1.25);
+    // 10. golem ngadep kanan terus ke (3, -4), kamera diatur manual
+    gerakNick.sampai(30).hadap(KANAN, 0.3).jalanKe(3, -4, 1.55);
 
     // 11. white ngadep kiri, jalan ke (0, 0), terus ngadep bawah
     gerakKevin.sampai(39.5).hadap(KIRI, 0.4).jalanKe(0, 0, 3.75).hadap(BAWAH, 0.4);
 
-    // 12. selesai (sekitar detik 44), semua diem di tempat terakhir
+    // 12. selesai (sekitar detik 44), magnet sama golem udah ilang kena ledakan, white sisa sendiri
 
     return {
         objek: [arena, tempatKevin, tempatFabio, tempatNick, bom.tempat],

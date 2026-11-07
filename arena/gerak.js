@@ -78,6 +78,7 @@ export class Penggerak {
         this.ulang = false;
         this.jalan = false;      // true kalau lagi ngerjain jalanKe, bisa dikasih ke animasi bomber
         this.lagiLempar = false; // true kalau bom lagi diangkat sebelum dilempar
+        this.hilang = false;     // true kalau kena ledakan, bomber nya langsung ga keliatan & berhenti
         this.pasang();
     }
 
@@ -113,6 +114,14 @@ export class Penggerak {
     update(time) {
         var t = time / 1000;
         if (this.waktuAwal === null) this.waktuAwal = t;
+
+        // udah kena ledakan: ga ngapa2in lagi
+        if (this.hilang) {
+            this.jalan = false;
+            this.lagiLempar = false;
+            this.pasang();
+            return;
+        }
 
         if (this.urutan >= this.daftar.length) {
             if (!this.ulang || this.daftar.length == 0) {
@@ -154,7 +163,7 @@ export class Penggerak {
             // tangan naik selama bom masih dipegang (sampe 30% lemparan)
             this.lagiLempar = k < 0.3;
             gerakinBom(p, k, this.x, this.y, this.skala);
-            if (k >= 1) p.bom.mendarat(t, p.sumbu);
+            if (k >= 1) p.bom.mendarat(t, p.sumbu, p.x, p.y);
         }
 
         if (p.jenis != "lempar") this.lagiLempar = false;
@@ -168,11 +177,13 @@ export class Penggerak {
     }
 
     // tulis posisi, arah, sama skala ke MOVEMATRIX tempatnya
+    // kalau udah hilang skalanya 0 jadi ga keliatan
     pasang() {
         var pos = posisiPetak(this.x, this.y);
         var m = this.tempat.MOVEMATRIX;
+        var s = this.hilang ? 0 : this.skala;
         LIBS.set_I4(m);
-        LIBS.scale(m, this.skala, this.skala, this.skala);
+        LIBS.scale(m, s, s, s);
         LIBS.rotateY(m, this.arah * Math.PI / 180);
         LIBS.set_position(m, pos.x, 0, pos.z);
     }

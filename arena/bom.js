@@ -1,48 +1,75 @@
 import { Objek } from "../shared/objek.js";
 import { LIBS } from "../shared/libs.js";
 import { buatEllipsoid } from "../shared/bentuk.js";
-import { PETAK } from "./arena.js";
+import { PETAK, petakDiblok } from "./arena.js";
 
 // bom yang bisa dilempar sama Penggerak, terus detak, terus meledak
 // model = Objek bom nya (misal buatBomb(GL) punya kevin)
 //
 // cara pakai di main.js:
 //   var bom = new Bom(GL, buatBomb(GL));
+//   bom.korban = [gerakA, gerakB];   // penggerak bomber yang bisa kena ledakan
 //   masukin bom.tempat ke daftar objek, terus di animasi: bom.update(time)
 //   lempar pake penggerak: gerak.lempar(bom, x, y, detik, sumbu)
 //
 // keadaan bom: "sembunyi" -> "terbang" -> "detak" -> "ledak" -> "sembunyi" lagi (bisa dilempar lagi)
+//
+// ledakannya kayak bomberman: api nyebar bentuk plus ngikutin petak, maksimal JANGKAUAN petak,
+// berhenti kalau ketemu pilar / tembok. bomber yang petaknya kena api langsung ilang
 
 var LAMA_LEDAK = 0.8;
+var JANGKAUAN = 3;
 
-// ledakan bentuk plus kayak di bomberman: bola kuning di tengah + 2 ellipsoid oranye panjang (x sama z)
-// ukurannya ngikutin ukuran petak, lengannya nyampe kira2 1.6 petak
-function buatApi(GL) {
-    var api = new Objek(GL);
-
-    var panjang = 1.6 * PETAK, tebal = 0.3 * PETAK, tengahR = 0.45 * PETAK;
-    var lenganX = buatEllipsoid(panjang, tebal, tebal, 12, 24);
-    var lenganZ = buatEllipsoid(tebal, tebal, panjang, 12, 24);
-    var tengah = buatEllipsoid(tengahR, tengahR, tengahR, 16, 24);
-    api.addChild(new Objek(GL, lenganX.vertex, lenganX.faces, [1.0, 0.45, 0.05]));
-    api.addChild(new Objek(GL, lenganZ.vertex, lenganZ.faces, [1.0, 0.45, 0.05]));
-    api.addChild(new Objek(GL, tengah.vertex, tengah.faces, [1.0, 0.85, 0.2]));
-
-    return api;
-}
+// 4 arah api: [dx, dy] di peta, sama sudut rotateY biar lengan apinya ngadep ke situ
+// rotateY(sudut) muter sumbu +x ke (cos, 0, -sin), jadi 90 derajat = ke atas peta (-z)
+var ARAH = [
+    [1, 0, 0],
+    [-1, 0, Math.PI],
+    [0, 1, Math.PI / 2],
+    [0, -1, -Math.PI / 2]
+];
 
 export class Bom {
     constructor(GL, model) {
         // tempat = posisi bom di arena, isi = pivot buat gedein / sembunyiin model bom nya
         this.tempat = new Objek(GL);
         this.isi = new Objek(GL);
-        this.api = buatApi(GL);
         this.isi.addChild(model);
         this.tempat.addChild(this.isi);
+
+        // api: bola kuning di tengah + 4 lengan oranye, panjang lengannya diatur pas meledak
+        this.api = new Objek(GL);
         this.tempat.addChild(this.api);
 
+        var r = 0.45 * PETAK;
+        var tengah = buatEllipsoid(r, r, r, 16, 24);
+        this.api.addChild(new Objek(GL, tengah.vertex, tengah.faces, [1.0, 0.85, 0.2]));
+
+        // tiap lengan = beberapa gumpalan api, 1 gumpalan per petak (kayak api bomberman)
+        // gumpalannya agak lebih panjang dari 1 petak biar nyambung sama sebelahnya
+        // nanti yang dipake cuma sebanyak jangkauan apinya, sisanya disembunyiin (skala 0)
+        var tebal = 0.3 * PETAK;
+        var gumpal = buatEllipsoid(0.6 * PETAK, tebal, tebal, 12, 24);
+        this.lengan = [];
+        for (var a of ARAH) {
+            var pivot = new Objek(GL);
+            LIBS.rotateY(pivot.MOVEMATRIX, a[2]);
+            this.api.addChild(pivot);
+
+            var daftar = [];
+            for (var n = 1; n <= JANGKAUAN; n++) {
+                var g = new Objek(GL, gumpal.vertex, gumpal.faces, [1.0, 0.45, 0.05]);
+                pivot.addChild(g);
+                daftar.push(g);
+            }
+            this.lengan.push(daftar);
+        }
+
+        this.korban = [];
         this.keadaan = "sembunyi";
         this.waktuLedak = 0;
+        this.petak = [0, 0];
+        this.panjang = [0, 0, 0, 0];
         this.sembunyi();
     }
 
@@ -67,10 +94,37 @@ export class Bom {
         LIBS.set_position(this.tempat.MOVEMATRIX, x, y, z);
     }
 
-    // dipanggil penggerak pas bom udah mendarat, meledak setelah sumbu detik
-    mendarat(t, sumbu) {
+    // dipanggil penggerak pas bom udah mendarat di petak (x, y), meledak setelah sumbu detik
+    mendarat(t, sumbu, x, y) {
         this.keadaan = "detak";
         this.waktuLedak = t + sumbu;
+        this.petak = [x, y];
+
+        // itung api nyampe berapa petak ke tiap arah, berhenti di pilar / tembok
+        for (var i = 0; i < ARAH.length; i++) {
+            var n = 0;
+            while (n < JANGKAUAN && !petakDiblok(x + ARAH[i][0] * (n + 1), y + ARAH[i][1] * (n + 1))) n++;
+            this.panjang[i] = n;
+
+            // gumpalan ke-j ditaruh di petak ke-j dari bom, cuma yang masih kena api yang keliatan
+            for (var j = 0; j < JANGKAUAN; j++) {
+                var g = this.lengan[i][j];
+                this.skala(g, j < n ? 1 : 0);
+                LIBS.set_position(g.MOVEMATRIX, (j + 1) * PETAK, 0, 0);
+            }
+        }
+    }
+
+    // true kalau petak (x, y) kena api
+    kenaApi(x, y) {
+        var bx = this.petak[0], by = this.petak[1];
+        if (x == bx && y == by) return true;
+        for (var i = 0; i < ARAH.length; i++) {
+            for (var n = 1; n <= this.panjang[i]; n++) {
+                if (x == bx + ARAH[i][0] * n && y == by + ARAH[i][1] * n) return true;
+            }
+        }
+        return false;
     }
 
     update(time) {
@@ -78,6 +132,11 @@ export class Bom {
 
         if (this.keadaan == "detak" && t >= this.waktuLedak) {
             this.keadaan = "ledak";
+
+            // bomber yang petaknya kena api langsung ilang
+            for (var g of this.korban) {
+                if (this.kenaApi(Math.round(g.x), Math.round(g.y))) g.hilang = true;
+            }
         }
 
         if (this.keadaan == "ledak") {
