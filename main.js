@@ -32,7 +32,7 @@ mulaiScene(function (GL) {
     gerakFabio.ulang = true;
 
     var gerakKevin = new Penggerak(tempatKevin, 0, 0);
-    gerakKevin.diam(1).jalanKe(0, -3, 2.5).diam(0.5).jalanKe(0, 0, 2.5);
+    gerakKevin.diam(1).jalanKe(0, -3, 2.5).diam(0.5).jalanKe(0, 0, 2.5).diam(1);
     gerakKevin.ulang = true;
 
     // golem 1.5x lebih gede dari yang lain (parameter terakhir = skala)
@@ -48,7 +48,7 @@ mulaiScene(function (GL) {
             gerakNick.update(time);
 
             // gerakX.jalan = lagi jalan apa diem, dikasih ke animasi biar bisa ganti gaya
-            animasiWhiteBomber(time);
+            animasiWhiteBomber(time, gerakKevin.jalan);
             animasiMagnetBomber(time, gerakFabio.jalan);
             animasiGolemBomber(time);
         },
