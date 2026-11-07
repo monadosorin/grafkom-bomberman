@@ -2,7 +2,7 @@ import { Objek } from "../shared/objek.js";
 import { LIBS } from "../shared/libs.js";
 import {
     buatEllipsoid, buatKapsul, buatTabung, buatHiperboloid1, buatHiperboloid2, buatParaboloid,
-    buatTorus, buatLingkaran, buatKotak, generateBSpline, buatMeshKurva
+    buatTorus, buatLingkaran, buatKotak, generateBSpline
 } from "../shared/bentuk.js";
 
 // disimpen di luar biar bisa diubah di animasi
@@ -78,6 +78,62 @@ var PUTIH = [1, 1, 1];
 var HITAM = [0.1, 0.1, 0.1];
 var KUNING = [1.0, 0.85, 0.1];
 var EMAS = [0.96, 0.66, 0.12];
+
+// balok yang ngikutin kurva 2D di bidang xy (misal hasil generateBSpline)
+// penampangnya persegi panjang, lebar = ke arah bidang kurva, tebal = ke arah z
+// tiap sisi punya vertex sendiri (kayak buatKotak) biar pinggirnya tajam
+function buatBalokKurva(kurva, lebar, tebal) {
+    var m = kurva.length / 2;
+    var vertex = [];
+    var faces = [];
+
+    // arah tegak lurus kurva di tiap titik
+    var nx = [], ny = [];
+    for (var i = 0; i < m; i++) {
+        var a = Math.max(i - 1, 0), b = Math.min(i + 1, m - 1);
+        var tx = kurva[b * 2] - kurva[a * 2];
+        var ty = kurva[b * 2 + 1] - kurva[a * 2 + 1];
+        var panjang = Math.sqrt(tx * tx + ty * ty) || 1;
+        nx.push(-ty / panjang);
+        ny.push(tx / panjang);
+    }
+
+    // 4 sudut penampang, [geser ke arah normal, geser ke z]
+    var w = lebar / 2, d = tebal / 2;
+    var sudut = [[w, d], [-w, d], [-w, -d], [w, -d]];
+
+    function titik(i, s) {
+        return [
+            kurva[i * 2] + s[0] * nx[i],
+            kurva[i * 2 + 1] + s[0] * ny[i],
+            s[1]
+        ];
+    }
+
+    // 4 sisi panjang, tiap sisi = pita dari sudut s ke sudut s+1
+    for (var s = 0; s < 4; s++) {
+        var awal = vertex.length / 3;
+        for (var i = 0; i < m; i++) {
+            vertex.push(...titik(i, sudut[s]));
+            vertex.push(...titik(i, sudut[(s + 1) % 4]));
+        }
+        for (var i = 0; i < m - 1; i++) {
+            var k = awal + i * 2;
+            faces.push(k, k + 2, k + 1);
+            faces.push(k + 1, k + 2, k + 3);
+        }
+    }
+
+    // tutup ujung awal sama ujung akhir
+    for (var i of [0, m - 1]) {
+        var awal = vertex.length / 3;
+        for (var s = 0; s < 4; s++) vertex.push(...titik(i, sudut[s]));
+        faces.push(awal, awal + 1, awal + 2);
+        faces.push(awal, awal + 2, awal + 3);
+    }
+
+    return { vertex: vertex, faces: faces };
+}
 
 // 1 kaki lengkap: kaki putih + sepatu + batang sepatu + cincin + lidah sepatu
 // titik (0,0,0) nya di pinggul
@@ -220,25 +276,27 @@ function buatKepala(GL) {
     LIBS.set_position(magnet.MOVEMATRIX, 0, 0.29, 0.32);
     kepala.addChild(magnet);
 
-    // badan magnetnya: mesh yang ngikutin kurva b-spline bentuk U
+    // badan magnetnya: balok yang ngikutin kurva b-spline bentuk U
+    // penampangnya kotak (lebar 0.07, tebal 0.045) biar tajam kayak di game
     var kurvaU = generateBSpline([
-        -0.145, 0.21,
-        -0.145, 0.0,
-        -0.145, -0.2,
-        0.145, -0.2,
-        0.145, 0.0,
-        0.145, 0.21
+        -0.13, 0.21,
+        -0.13, 0.0,
+        -0.13, -0.2,
+        0.13, -0.2,
+        0.13, 0.0,
+        0.13, 0.21
     ], 36, 2);
-    var pu = buatMeshKurva(kurvaU, 0.04, 0.04, null, 16);
+    var pu = buatBalokKurva(kurvaU, 0.07, 0.045);
     var badanMagnet = new Objek(GL, pu.vertex, pu.faces, EMAS);
     magnet.addChild(badanMagnet);
 
-    // ujung magnet, hiperboloid 1 sisi (kayak jam pasir) di tiap ujung U
-    var hp = buatHiperboloid1(0.04, 0.03, 0.04, 0.7, 8, 16);
+    // gelang di deket ujung magnet, hiperboloid 1 sisi (kayak jam pasir) yang ngelilingin kaki U
+    // pinggangnya = setengah penampang balok x akar 2, biar sudut baloknya ga nembus
+    var hp = buatHiperboloid1(0.05, 0.035, 0.032, 0.6, 8, 20);
     for (var sisi of [-1, 1]) {
-        var ujung = new Objek(GL, hp.vertex, hp.faces, [0.8, 0.5, 0.08]);
-        LIBS.set_position(ujung.MOVEMATRIX, 0.145 * sisi, 0.23, 0);
-        magnet.addChild(ujung);
+        var gelang = new Objek(GL, hp.vertex, hp.faces, [0.8, 0.5, 0.08]);
+        LIBS.set_position(gelang.MOVEMATRIX, 0.13 * sisi, 0.16, 0);
+        magnet.addChild(gelang);
     }
 
     return kepala;
