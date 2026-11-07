@@ -15,7 +15,11 @@ mulaiScene(function (GL) {
     var tempatNick = new Objek(GL);
 
     LIBS.set_position(tempatFabio.MOVEMATRIX, -3, 0, 0);
-    LIBS.set_position(tempatNick.MOVEMATRIX, 3, 0, 0);
+
+    // golem dibikin 1.5x lebih gede dari yang lain, kakinya tetep di lantai
+    // tempatnya digeser ke x = 4 biar ga mepet sama white bomber
+    LIBS.scale(tempatNick.MOVEMATRIX, 1.5, 1.5, 1.5);
+    LIBS.set_position(tempatNick.MOVEMATRIX, 4, 0, 0);
 
     tempatKevin.addChild(buatWhiteBomber(GL));
     tempatFabio.addChild(buatMagnetBomber(GL));
