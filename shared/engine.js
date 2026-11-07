@@ -2,6 +2,7 @@ import { LIBS } from "./libs.js";
 import { Objek } from "./objek.js";
 
 // buatScene(GL) harus return { objek: [...], animasi: function (time) {...} }
+// tambahin lantai: false kalau ga mau lantai abu2 bawaan
 export function mulaiScene(buatScene, jarakKamera) {
     var CANVAS = document.getElementById("mycanvas");
     CANVAS.width = window.innerWidth;
@@ -175,7 +176,8 @@ export function mulaiScene(buatScene, jarakKamera) {
         GL.uniformMatrix4fv(_Pmatrix, false, PROJMATRIX);
         GL.uniformMatrix4fv(_Vmatrix, false, VIEWMATRIX);
 
-        lantai.render(LIBS.get_I4());
+        // lantai abu2 bawaan, bisa dimatiin kalau scene nya punya lantai sendiri (lantai: false)
+        if (scene.lantai !== false) lantai.render(LIBS.get_I4());
         for (var objek of scene.objek) {
             objek.render(LIBS.get_I4());
         }
