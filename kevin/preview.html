@@ -9,13 +9,24 @@
 
     <script type="module">
         import { mulaiScene } from "../shared/engine.js";
+        import { LIBS } from "../shared/libs.js";
         import { buatWhiteBomber, animasiWhiteBomber } from "./whiteBomber.js";
-        import { buatBomb, animasiBomb} from "./bomb.js";
+        import { buatBomb, animasiBomb } from "./bomb.js";
 
         mulaiScene(function (GL) {
+            var bomber = buatWhiteBomber(GL);
+            var bom = buatBomb(GL);
+
+            // Letakkan bom di tengah arena (0, 0, 0)
+            // White Bomber akan otomatis berlari mengitari bom ini
+            LIBS.set_position(bom.MOVEMATRIX, 0, 0, 0);
+
             return {
-                objek: [buatWhiteBomber(GL)],
-                animasi: animasiWhiteBomber
+                objek: [bomber, bom],
+                animasi: function (time) {
+                    animasiWhiteBomber(time);
+                    animasiBomb(time);
+                }
             };
         }, 6);
     </script>
