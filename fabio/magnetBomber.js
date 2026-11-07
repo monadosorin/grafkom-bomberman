@@ -256,7 +256,7 @@ function buatKepala(GL) {
         kepala.addChild(kelopak);
     }
 
-    // antena: pivot di atas kepala agak belakang, isinya batang (cylinder) + bola gede
+    // antena: pivot di tengah atas kepala, isinya batang (cylinder) + bola gede
     antena = new Objek(GL);
     kepala.addChild(antena);
 
@@ -410,10 +410,10 @@ export function animasiMagnetBomber(time) {
     LIBS.set_I4(badan.MOVEMATRIX);
     LIBS.set_position(badan.MOVEMATRIX, 0, 0.7 + Math.abs(Math.sin(langkah)) * 0.035, 0);
 
-    // antena goyang
+    // antena di tengah atas kepala, goyang dikit ke kiri kanan
     LIBS.set_I4(antena.MOVEMATRIX);
-    LIBS.rotateZ(antena.MOVEMATRIX, 0.3 + Math.sin(t * 3) * 0.12);
-    LIBS.set_position(antena.MOVEMATRIX, -0.16, 0.33, -0.12);
+    LIBS.rotateZ(antena.MOVEMATRIX, Math.sin(t * 3) * 0.12);
+    LIBS.set_position(antena.MOVEMATRIX, 0, 0.37, -0.05);
 
     // ekor syal berkibar, makin bawah makin ke samping
     var syal = [[syalMerah, 0.5, 0.27], [syalBiru, 0.9, 0.21]];
