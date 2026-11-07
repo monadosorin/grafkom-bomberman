@@ -10,7 +10,7 @@ var PETAK = 2;
 
 // tinggi tembok luar sama pilar (unit)
 var TINGGI_TEMBOK = 1.6;
-var TINGGI_PILAR = 1.1;
+var TINGGI_PILAR = 3.5;   // kira2 setinggi golem bomber (golem di scene tingginya ~3.7)
 
 // pola pilar di 1 pojok, [jarak dari tembok samping, jarak dari tembok depan/belakang] dalam petak
 // pola ini dicopy ke 4 pojok, jadi tengah arena tetep kosong
