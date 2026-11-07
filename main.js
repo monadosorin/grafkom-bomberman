@@ -3,6 +3,7 @@ import { Objek } from "./shared/objek.js";
 import { buatMagnetBomber, animasiMagnetBomber } from "./fabio/magnetBomber.js";
 import { buatWhiteBomber, animasiWhiteBomber } from "./kevin/whiteBomber.js";
 import { buatGolemBomber, animasiGolemBomber } from "./nick/golemBomber.js";
+import { buatBomb, animasiBomb } from "./kevin/bomb.js"; //import bomb
 import { buatArena, labelPetak } from "./arena/arena.js";
 import { Penggerak } from "./arena/gerak.js";
 
