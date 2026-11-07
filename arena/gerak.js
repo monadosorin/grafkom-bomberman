@@ -4,27 +4,23 @@ import { posisiPetak, petakDiblok } from "./arena.js";
 // penggerak buat 1 bomber: nyimpen antrian perintah gerak, tiap frame ngatur posisi tempatnya
 //
 // cara pakai di main.js:
-//   var gerak = new Penggerak(tempatFabio, -2, 0);  // taruh di petak (-2, 0)
+//   var gerak = new Penggerak(tempatFabio, -2, 0);       // taruh di petak (-2, 0), ngadep depan
+//   var gerak = new Penggerak(tempatNick, 2, 0, 1.5, -90); // skala 1.5, ngadep kiri
 //   gerak.jalanKe(-2, 3, 2);   // jalan ke petak (-2, 3) selama 2 detik
 //   gerak.diam(1);             // diem 1 detik
 //   gerak.hadap(180, 0.5);     // muter ngadep 180 derajat (belakang) selama 0.5 detik
-//   gerak.lempar(tempatBom, 0, 2, 1.4);  // lempar bom ke petak (0, 2) selama 1.4 detik
+//   gerak.sampai(10);          // diem sampe detik ke-10 dari awal scene (buat nyamain waktu antar bomber)
+//   gerak.lempar(bom, 0, 2, 1.4, 2);  // lempar bom ke petak (0, 2) selama 1.4 detik, meledak 2 detik abis mendarat
 //   gerak.ulang = true;        // kalau perintahnya udah habis, ulang dari awal
 //   terus di animasi: gerak.update(time);
 //   gerak.jalan = true kalau lagi jalan, false kalau lagi diem / muter, bisa dikasih ke animasi bomber
 //   gerak.lagiLempar = true kalau bom nya lagi diangkat (tangan naik), bisa dikasih ke animasi bomber juga
 //
-// arah dalam derajat: 0 = ngadep depan (ke kamera awal), 90 = kanan, 180 = belakang, -90 = kiri
+// arah dalam derajat: 0 = ngadep depan (bawah di peta), 90 = kanan, 180 = belakang (atas di peta), -90 = kiri
 
 // tinggi bom pas diangkat di atas kepala, sama tinggi puncak lengkungan lemparan
 var TINGGI_ANGKAT = 2.2;
 var TINGGI_LEMPAR = 3.5;
-
-// bom disembunyiin dengan skala 0 (ga keliatan sama sekali)
-function sembunyiin(bom) {
-    LIBS.set_I4(bom.MOVEMATRIX);
-    LIBS.scale(bom.MOVEMATRIX, 0, 0, 0);
-}
 
 // posisi bom selama lemparan, k = 0 sampai 1
 // 0 - 0.25   : diangkat dari tangan ke atas kepala
@@ -56,23 +52,31 @@ function gerakinBom(p, k, darix, dariy, skala) {
         y = Math.sin(a * Math.PI) * 0.4;
     }
 
-    LIBS.set_I4(p.bom.MOVEMATRIX);
-    LIBS.set_position(p.bom.MOVEMATRIX, x, y, z);
+    p.bom.taruh(x, y, z);
+}
+
+// selisih sudut paling pendek dari a ke b (derajat), hasilnya -180 sampai 180
+function selisihSudut(a, b) {
+    var d = (b - a) % 360;
+    if (d > 180) d -= 360;
+    if (d < -180) d += 360;
+    return d;
 }
 
 export class Penggerak {
-    constructor(tempat, x, y, skala) {
+    constructor(tempat, x, y, skala, arah) {
         this.tempat = tempat;
         this.skala = skala || 1;
         this.x = x;
         this.y = y;
-        this.arah = 0;
+        this.arah = arah || 0;
         this.daftar = [];
-        this.urutan = 0;     // lagi ngerjain perintah ke berapa
-        this.mulai = null;   // detik perintah yang sekarang mulai
-        this.awal = null;    // posisi & arah pas perintah yang sekarang mulai
+        this.urutan = 0;         // lagi ngerjain perintah ke berapa
+        this.mulai = null;       // detik perintah yang sekarang mulai
+        this.awal = null;        // posisi & arah pas perintah yang sekarang mulai
+        this.waktuAwal = null;   // detik pertama kali update dipanggil (awal scene)
         this.ulang = false;
-        this.jalan = false;  // true kalau lagi ngerjain jalanKe, bisa dikasih ke animasi bomber
+        this.jalan = false;      // true kalau lagi ngerjain jalanKe, bisa dikasih ke animasi bomber
         this.lagiLempar = false; // true kalau bom lagi diangkat sebelum dilempar
         this.pasang();
     }
@@ -93,17 +97,22 @@ export class Penggerak {
         return this;
     }
 
-    // lempar bom ke petak (x, y): diangkat ke atas kepala, terbang melengkung, mantul dikit, terus diem di situ
-    // bom = Objek tempat bom nya (kayak tempat bomber), sebelum dilempar bom nya disembunyiin
-    lempar(bom, x, y, detik) {
+    sampai(detik) {
+        this.daftar.push({ jenis: "sampai", waktu: detik, detik: 0 });
+        return this;
+    }
+
+    // lempar bom (objek Bom) ke petak (x, y): diangkat, terbang melengkung, mantul, terus detak
+    // sumbu = berapa detik abis mendarat baru meledak
+    lempar(bom, x, y, detik, sumbu) {
         if (petakDiblok(x, y)) console.warn("petak (" + x + ", " + y + ") itu tembok / pilar");
-        this.daftar.push({ jenis: "lempar", bom: bom, x: x, y: y, detik: detik || 1.4 });
-        sembunyiin(bom);
+        this.daftar.push({ jenis: "lempar", bom: bom, x: x, y: y, detik: detik || 1.4, sumbu: sumbu || 2 });
         return this;
     }
 
     update(time) {
         var t = time / 1000;
+        if (this.waktuAwal === null) this.waktuAwal = t;
 
         if (this.urutan >= this.daftar.length) {
             if (!this.ulang || this.daftar.length == 0) {
@@ -112,6 +121,7 @@ export class Penggerak {
                 return;
             }
             this.urutan = 0;
+            this.waktuAwal = t;
         }
 
         var p = this.daftar[this.urutan];
@@ -130,17 +140,21 @@ export class Penggerak {
         }
 
         // k = udah berapa persen perintahnya jalan (0 sampai 1)
-        var k = p.detik > 0 ? Math.min((t - this.mulai) / p.detik, 1) : 1;
+        var k;
+        if (p.jenis == "sampai") k = (t - this.waktuAwal) >= p.waktu ? 1 : 0;
+        else k = p.detik > 0 ? Math.min((t - this.mulai) / p.detik, 1) : 1;
 
         if (p.jenis == "jalan") {
             this.x = this.awal.x + (p.x - this.awal.x) * k;
             this.y = this.awal.y + (p.y - this.awal.y) * k;
         } else if (p.jenis == "hadap") {
-            this.arah = this.awal.arah + (p.arah - this.awal.arah) * k;
+            // muter lewat jalan yang paling pendek
+            this.arah = this.awal.arah + selisihSudut(this.awal.arah, p.arah) * k;
         } else if (p.jenis == "lempar") {
             // tangan naik selama bom masih dipegang (sampe 30% lemparan)
             this.lagiLempar = k < 0.3;
             gerakinBom(p, k, this.x, this.y, this.skala);
+            if (k >= 1) p.bom.mendarat(t, p.sumbu);
         }
 
         if (p.jenis != "lempar") this.lagiLempar = false;
