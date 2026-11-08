@@ -258,7 +258,8 @@ export function mulaiScene(buatScene, jarakKamera) {
     /*========================= DRAWING ========================= */
     GL.enable(GL.DEPTH_TEST);
     GL.depthFunc(GL.LEQUAL);
-    GL.clearColor(0.15, 0.15, 0.2, 1.0);
+    // background biru langit
+    GL.clearColor(0.53, 0.81, 0.95, 1.0);
     GL.clearDepth(1.0);
 
     var time_prev = 0;
