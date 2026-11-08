@@ -107,7 +107,7 @@ export function buatWhiteBomber(GL) {
     antena.addChild(bolaKepala);
 
     // -------------------------------------TANGAN----------------------------------------------
-    var tanganGeom = buatFrustum(0.12, 0.08, 0.45, 20, 20);
+    var tanganGeom = buatFrustum(0.03, 0.1, 0.5, 20, 20);
     var bolaTanganGeom = buatEllipsoid(0.16, 0.16, 0.16, 20, 20);
 
     bahuKiri = new Objek(GL);
