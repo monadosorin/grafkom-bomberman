@@ -22,10 +22,9 @@
             LIBS.set_position(bom.MOVEMATRIX, 0, 0, 0);
 
             return {
-                objek: [bomber, bom],
+                objek: [bomber],
                 animasi: function (time) {
                     animasiWhiteBomber(time);
-                    animasiBomb(time);
                 }
             };
         }, 6);
