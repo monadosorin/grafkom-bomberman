@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Idle Semua Bomber</title>
+</head>
+<body style="margin: 0; overflow: hidden">
+    <canvas id="mycanvas" style="display: block"></canvas>
+
+    <script type="module">
+        import { mulaiScene } from "./shared/engine.js";
+        import { Objek } from "./shared/objek.js";
+        import { LIBS } from "./shared/libs.js";
+        import { buatWhiteBomber, animasiWhiteBomber } from "./kevin/whiteBomber.js";
+        import { buatMagnetBomber, animasiMagnetBomber } from "./fabio/magnetBomber.js";
+        import { buatGolemBomber, animasiGolemBomber } from "./nick/golemBomber.js";
+
+        // 3 bomber berdiri sebelahan, semuanya animasi diem
+        mulaiScene(function (GL) {
+            var tempatKevin = new Objek(GL);
+            var tempatFabio = new Objek(GL);
+            var tempatNick = new Objek(GL);
+
+            tempatKevin.addChild(buatWhiteBomber(GL));
+            tempatFabio.addChild(buatMagnetBomber(GL));
+            tempatNick.addChild(buatGolemBomber(GL));
+
+            // kiri ke kanan: white, magnet, golem. golem 1.5x lebih gede kayak di scene utama
+            LIBS.set_position(tempatKevin.MOVEMATRIX, -4.1, 0, 0);
+            LIBS.set_position(tempatFabio.MOVEMATRIX, -1.9, 0, 0);
+            LIBS.scale(tempatNick.MOVEMATRIX, 1.5, 1.5, 1.5);
+            LIBS.set_position(tempatNick.MOVEMATRIX, 2.1, 0, 0);
+
+            return {
+                objek: [tempatKevin, tempatFabio, tempatNick],
+                animasi: function (time) {
+                    // false = lagi ga jalan (sama ga lempar), jadi pake animasi diem
+                    animasiWhiteBomber(time, false, false);
+                    animasiMagnetBomber(time, false);
+                    animasiGolemBomber(time, false);
+                }
+            };
+        }, 11);
+    </script>
+</body>
+</html>
