@@ -14,18 +14,6 @@ import {
     buatMeshKurva     // mesh mengikuti kurva (sapuan penampang di sepanjang kurva)
 } from "../shared/bentuk.js"; // semua bentuk dipakai dari file bersama kelompok
 
-// =====================================================================
-// GOLEM BOMBER - pembagian bentuk sesuai Dokumen Penjelasan
-//
-// Kepala            : ellipsoid + cylinder + cone modifikasi + toroid
-// Pundak & Armor    : elliptic paraboloid (shoulder pad) + mesh mengikuti kurva
-//                     + toroid modifikasi + cube modifikasi + ellipsoid modifikasi
-// Badan             : ellipsoid
-// Tangan            : ellipsoid + cylinder + elliptic paraboloid
-// Kaki              : ellipsoid + cylinder + hyperboloid 2 sheet modifikasi + circle
-// Aksesori (Tanaman & Bunga) : mesh mengikuti kurva + cone modifikasi (kelopak)
-// =====================================================================
-
 var SKALA = 0.7;
 
 // warna dalam format [r, g, b], nilai 0 sampai 1
