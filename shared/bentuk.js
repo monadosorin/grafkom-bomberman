@@ -317,8 +317,7 @@ export function buatFrustum(rBottom, rTop, tinggi, stack, sector) {
     return { vertex: vertex, faces: facesGrid(stack, sector) };
 }
 
-// ========== ditambahkan oleh Nick, dipakai nick/golemBomber.js ==========
-
+// Punya Nick
 // MESH MENGIKUTI KURVA: menyapukan penampang elips sepanjang sebuah kurva 2D
 // (hasil generateBSpline atau kurva titik [x, y, x, y, ...] lainnya).
 //   kurva  = [x, y, x, y, ...] hasil generateBSpline
