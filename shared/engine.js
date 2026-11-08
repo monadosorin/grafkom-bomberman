@@ -19,7 +19,7 @@ export function mulaiScene(buatScene, jarakKamera) {
         return false;
     }
 
-    // canvas 2D di atas canvas webgl buat nulis label sama petunjuk
+    // canvas 2D di atas canvas webgl buat nulis label
     var KANVAS2D = document.createElement("canvas");
     KANVAS2D.style.position = "absolute";
     KANVAS2D.style.left = "0";
@@ -235,22 +235,6 @@ export function mulaiScene(buatScene, jarakKamera) {
                 CTX.fillRect(p[0] - lebar / 2, p[1] - 9, lebar, 18);
                 CTX.fillStyle = l.warna || "white";
                 CTX.fillText(l.teks, p[0], p[1]);
-            }
-        }
-
-        // petunjuk tombol di pojok kiri bawah
-        if (modeBebas || scene.label) {
-            var tulisan = [];
-            if (modeBebas) tulisan.push("WASD: gerak   Q/E: turun/naik   Shift: cepet   drag mouse: nengok");
-            if (scene.label) tulisan.push("G: " + (tampilLabel ? "sembunyiin" : "tampilin") + " koordinat petak");
-            CTX.font = "13px monospace";
-            CTX.textAlign = "left";
-            for (var i = 0; i < tulisan.length; i++) {
-                var yy = KANVAS2D.height - 16 - (tulisan.length - 1 - i) * 18;
-                CTX.fillStyle = "rgba(0, 0, 0, 0.5)";
-                CTX.fillRect(8, yy - 9, CTX.measureText(tulisan[i]).width + 10, 18);
-                CTX.fillStyle = "white";
-                CTX.fillText(tulisan[i], 13, yy);
             }
         }
     }
