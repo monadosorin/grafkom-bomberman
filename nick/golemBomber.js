@@ -57,6 +57,13 @@ var AYUN_TANGAN = 0.35;         // sudut ayun tangan, dalam radian
 var PANJANG_KAKI = 0.82;        // jarak dari pinggul sampai alas telapak
 var ANGKAT_KAKI = 0.09;         // tinggi kaki terangkat saat terayun maju
 
+// pengaturan animasi di scene gabungan (main.js), posisinya diatur Penggerak jadi golem cuma melangkah di tempat
+var IRAMA_LANGKAH = 1.1;        // siklus langkah per detik
+
+// 0 = diam, 1 = jalan penuh. berubahnya pelan supaya pindah dari jalan ke diam tidak patah
+var faktorJalan = 0;
+var waktuSebelum = 0;
+
 /* ===================== FUNGSI PEMBANTU ===================== */
 
 // mengatur rotasi dan posisi sebuah objek (dipakai untuk menaruh bentuk dan mengatur pose)
@@ -359,9 +366,67 @@ function aturPoseDiam() {
 /* ===================== ANIMASI JALAN ===================== */
 
 // dipanggil main.js dan preview.html tiap frame. time dalam milidetik.
+// sedangJalan = true kalau lagi jalan, false kalau lagi diam (dikasih dari penggerak di main.js)
+// kalau tidak dikasih (preview.html), golem jalan maju mundur sendiri
+export function animasiGolemBomber(time, sedangJalan) {
+    if (sedangJalan === undefined) {
+        animasiMajuMundur(time);
+        return;
+    }
+
+    var t = time / 1000;
+    var dt = Math.min(Math.max(t - waktuSebelum, 0), 0.1);
+    waktuSebelum = t;
+
+    // faktorJalan didekatkan ke 1 (jalan) atau 0 (diam), kira-kira butuh 0.3 detik
+    faktorJalan += ((sedangJalan ? 1 : 0) - faktorJalan) * Math.min(dt * 6, 1);
+    var f = faktorJalan;
+    var d = 1 - faktorJalan;
+
+    // root tetap di tengah, yang memindahkan golem itu Penggerak
+    LIBS.set_I4(rootGolem.MOVEMATRIX);
+    LIBS.scale(rootGolem.MOVEMATRIX, SKALA, SKALA, SKALA);
+
+    // gerakan langkah sama seperti animasi maju mundur, tapi besarnya dikali f jadi mengecil sampai 0 saat berhenti
+    var langkah = t * 2 * Math.PI * IRAMA_LANGKAH;
+    var s = Math.sin(langkah) * f;
+    var c = Math.cos(langkah);
+    var miring = CONDONG + 0.04 * f;
+    var ayun = Math.asin(0.97 * Math.sin(langkah)) / Math.asin(0.97) * AYUN_KAKI * f;
+    var angkatKiri = ANGKAT_KAKI * Math.sqrt(Math.max(0, c)) * f;
+    var angkatKanan = ANGKAT_KAKI * Math.sqrt(Math.max(0, -c)) * f;
+
+    // napas saat diam (0 sampai 1): badan naik pelan, pinggul diturunkan sama banyak supaya kaki tetap di lantai
+    var napas = (Math.sin(t * 2) + 1) / 2 * d;
+    var naik = 0.03 * napas;
+
+    atur(pinggulKiri, -POS_PINGGUL.x, POS_PINGGUL.y + angkatKiri - naik, POS_PINGGUL.z, -ayun, 0, 0);
+    atur(pinggulKanan, POS_PINGGUL.x, POS_PINGGUL.y + angkatKanan - naik, POS_PINGGUL.z, ayun, 0, 0);
+    atur(telapakKiri, 0, -TINGGI_KAKI, 0, -miring + ayun, 0, 0);
+    atur(telapakKanan, 0, -TINGGI_KAKI, 0, -miring - ayun, 0, 0);
+
+    var turun = 0.25 * PANJANG_KAKI * (1 - Math.cos(ayun));
+    atur(badanPivot, 0, 0.02 - turun + naik, 0, miring, -s * 0.05, s * 0.025);
+
+    // tangan: saat jalan mengayun berlawanan dengan kaki, saat diam sedikit membuka ikut napas
+    var buka = 0.12 + 0.04 * napas;
+    atur(bahuKiri, -POS_BAHU.x, POS_BAHU.y, POS_BAHU.z, s * AYUN_TANGAN, 0, -buka);
+    atur(bahuKanan, POS_BAHU.x, POS_BAHU.y, POS_BAHU.z, -s * AYUN_TANGAN, 0, buka);
+    atur(sikuKiri, 0, POS_SIKU.y, 0, -0.3 - 0.3 * Math.max(0, -s), 0, 0);
+    atur(sikuKanan, 0, POS_SIKU.y, 0, -0.3 - 0.3 * Math.max(0, s), 0, 0);
+
+    // kepala mengangguk tiap langkah, saat diam ikut napas. antena dan bunga bergoyang pelan saat diam
+    atur(kepalaPivot, POS_KEPALA.x, POS_KEPALA.y, POS_KEPALA.z, 0.03 * Math.cos(2 * langkah) * f + 0.03 * napas, s * 0.03, 0);
+    atur(antenaPivot, POS_ANTENA.x, POS_ANTENA.y, POS_ANTENA.z, 0, 0,
+        0.3 + 0.12 * Math.sin(2 * langkah - 0.8) * f + 0.05 * Math.sin(t * 1.5) * d);
+    atur(bungaPivot, POS_BUNGA.x, POS_BUNGA.y, POS_BUNGA.z, 0, 0,
+        0.1 + 0.1 * Math.sin(2 * langkah - 0.4) * f + 0.04 * Math.sin(t * 1.5 + 1) * d);
+}
+
+// jalan maju mundur sendiri, dipakai preview.html
 // satu siklus langkah: kaki kiri maju lalu kaki kanan maju, tangan mengayun berlawanan dengan kaki di sisi yang sama.
 // pada gerakan sendi, rotateX negatif = ke depan (golem menghadap +z).
-export function animasiGolemBomber(time) {
+function animasiMajuMundur(time) {
     var t = time / 1000;
 
     // maju mundur di sepanjang sumbu z, golem tetap menghadap depan (+z) sehingga saat mundur ia berjalan mundur.

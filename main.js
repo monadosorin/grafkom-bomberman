@@ -95,7 +95,7 @@ mulaiScene(function (GL) {
             // dikasih ke animasi biar bisa ganti gaya
             animasiWhiteBomber(time, gerakKevin.jalan, gerakKevin.lagiLempar);
             animasiMagnetBomber(time, gerakFabio.jalan);
-            animasiGolemBomber(time);
+            animasiGolemBomber(time, gerakNick.jalan);
             animasiBomb(time);
         },
         // arena udah punya lantai sendiri
