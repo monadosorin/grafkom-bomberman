@@ -90,11 +90,13 @@ export function mulaiScene(buatScene, jarakKamera) {
     /*========================= KEYBOARD ========================= */
     var tombol = {};
     var tampilLabel = false;
+    var jeda = false;   // pencet P buat pause / lanjut animasi
 
     window.addEventListener("keydown", function (e) {
         var k = e.key.toLowerCase();
         tombol[k] = true;
         if (k == "g") tampilLabel = !tampilLabel;
+        if (k == "p" && !e.repeat) jeda = !jeda;
     });
     window.addEventListener("keyup", function (e) {
         tombol[e.key.toLowerCase()] = false;
@@ -247,9 +249,11 @@ export function mulaiScene(buatScene, jarakKamera) {
     GL.clearDepth(1.0);
 
     var time_prev = 0;
+    var waktu = 0;   // waktu animasi (ms), ga nambah pas lagi di-pause
     var animate = function (time) {
         var dt = Math.min((time - time_prev) / 1000, 0.1);
         time_prev = time;
+        if (!jeda) waktu += dt * 1000;
 
         if (modeBebas) {
             pitch = Math.min(Math.max(pitch, -1.5), 1.5);
@@ -282,7 +286,7 @@ export function mulaiScene(buatScene, jarakKamera) {
             LIBS.set_position(VIEWMATRIX, 0, -1, -jarak);
         }
 
-        if (scene.animasi) scene.animasi(time);
+        if (scene.animasi) scene.animasi(waktu);
 
         GL.viewport(0, 0, CANVAS.width, CANVAS.height);
         GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
