@@ -16,6 +16,17 @@ export var LIBS = {
         ];
     },
 
+    // proyeksi orthographic (parallel), jauh dekat ukurannya sama
+    // tinggi = setengah tinggi yang keliatan di layar (unit dunia), a = lebar / tinggi layar
+    get_ortho: function (tinggi, a, zMin, zMax) {
+        return [
+            1 / (tinggi * a), 0, 0, 0,
+            0, 1 / tinggi, 0, 0,
+            0, 0, -2 / (zMax - zMin), 0,
+            0, 0, -(zMax + zMin) / (zMax - zMin), 1
+        ];
+    },
+
     get_I4: function () {
         return [1, 0, 0, 0,
             0, 1, 0, 0,

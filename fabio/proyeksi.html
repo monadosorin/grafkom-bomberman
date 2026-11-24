@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Magnet Bomber - Proyeksi</title>
+</head>
+<body style="margin: 0; overflow: hidden">
+    <canvas id="mycanvas" style="display: block"></canvas>
+    <div id="info" style="position: absolute; left: 12px; top: 12px; padding: 8px 12px; background: rgba(0, 0, 0, 0.55); color: white; font: 14px monospace; border-radius: 6px"></div>
+
+    <script type="module">
+        import { mulaiScene } from "../shared/engine.js";
+        import { Objek } from "../shared/objek.js";
+        import { LIBS } from "../shared/libs.js";
+        import { buatMagnetBomber, animasiMagnetBomber } from "./magnetBomber.js";
+
+        // 3 proyeksi, ganti pake tombol 1 2 3
+        // 1 = orthographic tampak depan (front elevation)
+        // 2 = isometric (axonometric)
+        // 3 = perspective 2 titik hilang (two-point)
+        var mode = 1;
+        var NAMA = ["", "1. Orthographic - tampak depan", "2. Isometric", "3. Perspective - two-point"];
+
+        var info = document.getElementById("info");
+        function tulisInfo() {
+            info.innerHTML = NAMA[mode] + "<br>tombol 1 / 2 / 3 buat ganti proyeksi";
+        }
+        tulisInfo();
+
+        window.addEventListener("keydown", function (e) {
+            if (e.key == "1" || e.key == "2" || e.key == "3") {
+                mode = Number(e.key);
+                tulisInfo();
+            }
+        });
+
+        // lantai kotak2 kecil biar keliatan bedanya tiap proyeksi
+        // n x n petak ukuran s, warnanya selang seling
+        function buatLantai(GL, n, s) {
+            var terang = { vertex: [], faces: [] };
+            var gelap = { vertex: [], faces: [] };
+            for (var i = 0; i < n; i++) {
+                for (var j = 0; j < n; j++) {
+                    var t = (i + j) % 2 == 0 ? terang : gelap;
+                    var x = (i - n / 2) * s, z = (j - n / 2) * s;
+                    var awal = t.vertex.length / 3;
+                    t.vertex.push(x, 0, z, x + s, 0, z, x + s, 0, z + s, x, 0, z + s);
+                    t.faces.push(awal, awal + 2, awal + 1, awal, awal + 3, awal + 2);
+                }
+            }
+            var lantai = new Objek(GL);
+            lantai.addChild(new Objek(GL, terang.vertex, terang.faces, [0.85, 0.87, 0.9]));
+            lantai.addChild(new Objek(GL, gelap.vertex, gelap.faces, [0.45, 0.48, 0.55]));
+            return lantai;
+        }
+
+        // salin isi matrix baru ke matrix punya engine
+        function salin(tujuan, sumber) {
+            for (var i = 0; i < 16; i++) tujuan[i] = sumber[i];
+        }
+
+        mulaiScene(function (GL) {
+            return {
+                objek: [buatLantai(GL, 10, 0.5), buatMagnetBomber(GL)],
+                animasi: animasiMagnetBomber,
+                lantai: false,
+
+                // dipanggil engine tiap frame, PROJ (proyeksi) sama VIEW (kamera) diisi sesuai mode
+                proyeksi: function (PROJ, VIEW, aspek) {
+                    LIBS.set_I4(VIEW);
+
+                    if (mode == 1) {
+                        // orthographic: garis proyeksinya sejajar, jauh dekat ukurannya sama
+                        // kamera lurus dari depan, ga diputar sama sekali
+                        salin(PROJ, LIBS.get_ortho(1.6, aspek, 0.5, 150));
+                        LIBS.set_position(VIEW, 0, -1.2, -10);
+                    } else if (mode == 2) {
+                        // isometric: masih orthographic, tapi kamera diputar 45 derajat
+                        // terus dimiringin 35.26 derajat, jadi sumbu x, y, z kepotong sama panjang
+                        salin(PROJ, LIBS.get_ortho(1.6, aspek, 0.5, 150));
+                        LIBS.rotateY(VIEW, Math.PI / 4);
+                        LIBS.rotateX(VIEW, Math.atan(1 / Math.sqrt(2)));
+                        LIBS.set_position(VIEW, 0, -1, -10);
+                    } else {
+                        // perspective: yang jauh keliatan lebih kecil
+                        // kamera diputar ke samping tapi ga miring (sejajar lantai)
+                        // jadi garis tegak tetep tegak, garis x sama z ketemu di 2 titik hilang
+                        salin(PROJ, LIBS.get_projection(40, aspek, 0.5, 150));
+                        LIBS.rotateY(VIEW, -Math.PI / 5);
+                        LIBS.set_position(VIEW, 0, -1.2, -5);
+                    }
+                }
+            };
+        }, 6);
+    </script>
+</body>
+</html>

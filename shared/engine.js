@@ -6,6 +6,7 @@ import { Objek } from "./objek.js";
 //   lantai: false      -> ga pake lantai abu2 bawaan
 //   kamera: "bebas"    -> kamera bebas (WASD + drag mouse), kalau ga ada pake kamera muter biasa
 //   label: [{ teks, x, y, z, warna }, ...] -> tulisan di posisi 3D, muncul/ilang pake tombol G
+//   proyeksi: function (PROJ, VIEW, aspek) {...} -> dipanggil tiap frame, isi PROJ & VIEW sendiri
 export function mulaiScene(buatScene, jarakKamera) {
     var CANVAS = document.getElementById("mycanvas");
     CANVAS.width = window.innerWidth;
@@ -285,6 +286,9 @@ export function mulaiScene(buatScene, jarakKamera) {
             LIBS.rotateX(VIEWMATRIX, PHI);
             LIBS.set_position(VIEWMATRIX, 0, -1, -jarak);
         }
+
+        // scene boleh ganti proyeksi & kamera sendiri tiap frame
+        if (scene.proyeksi) scene.proyeksi(PROJMATRIX, VIEWMATRIX, CANVAS.width / CANVAS.height);
 
         if (scene.animasi) scene.animasi(waktu);
 
